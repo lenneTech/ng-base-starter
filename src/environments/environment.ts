@@ -6,7 +6,7 @@ export const environment = {
   apiUrl: 'http://localhost:3000/graphql',
   wsUrl: 'ws://localhost:3000/graphql',
   authGuardRedirectUrl: '/auth',
-  logging: true,
+  logging: false,
   // version: '0.0.1',
   // scrollDetectionOffset: 200,
   // scrollOffset: 100,
