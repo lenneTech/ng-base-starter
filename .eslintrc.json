@@ -8,17 +8,13 @@
         "project": ["tsconfig.json"],
         "createDefaultProgram": true
       },
-      "extends": [
-        "plugin:@angular-eslint/recommended",
-        "plugin:@angular-eslint/template/process-inline-templates",
-        "plugin:prettier/recommended"
-      ],
+      "extends": ["plugin:@angular-eslint/recommended", "plugin:@angular-eslint/template/process-inline-templates"],
       "rules": {
         "@angular-eslint/directive-selector": [
           "error",
           {
             "type": "attribute",
-            "prefix": "lc",
+            "prefix": "app",
             "style": "camelCase"
           }
         ],
@@ -26,7 +22,7 @@
           "error",
           {
             "type": "element",
-            "prefix": "lc",
+            "prefix": "app",
             "style": "kebab-case"
           }
         ]

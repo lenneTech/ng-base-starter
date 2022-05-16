@@ -1,0 +1,10 @@
+// Required
+@import 'node_modules/bootstrap/scss/functions';
+@import 'node_modules/bootstrap/scss/mixins';
+
+// Your variables
+@import 'custom/colors';
+@import 'custom/breakpoints';
+
+// Required Bootstrap variables
+@import 'node_modules/bootstrap/scss/variables';
