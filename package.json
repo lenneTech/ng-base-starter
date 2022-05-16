@@ -1,6 +1,8 @@
 {
   "name": "app",
   "version": "13.6.6",
+  "author": "lenne.Tech <info@lenne.tech> (https://lenne.tech)",
+  "license": "MIT",
   "scripts": {
     "ng": "ng",
     "reinit": "rm -rf node_modules && rm -rf package-lock.json && npm cache clean --force && npm i",
