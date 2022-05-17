@@ -4,6 +4,7 @@
   "author": "lenne.Tech <info@lenne.tech> (https://lenne.tech)",
   "license": "MIT",
   "scripts": {
+    "init": "npm install",
     "ng": "ng",
     "reinit": "rm -rf node_modules && rm -rf package-lock.json && npm cache clean --force && npm i",
     "start": "ng serve",
