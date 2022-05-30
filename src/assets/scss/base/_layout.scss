@@ -6,3 +6,7 @@ body {
   scroll-behavior: smooth;
   overscroll-behavior-y: none;
 }
+
+:root {
+  --lt-loading-bar-color: var(--bs-primary);
+}
