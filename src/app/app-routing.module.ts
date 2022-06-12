@@ -18,6 +18,11 @@ const routes: Routes = [
     loadChildren: () => import('./sections/auth/auth.module').then(m => m.AuthModule),
   },
   {
+    path: 'cms',
+    loadChildren: () => import('./sections/cms/cms.module').then(m => m.CmsModule),
+    canActivateChild: [AuthGuard],
+  },
+  {
     path: '**',
     redirectTo: '',
   },
