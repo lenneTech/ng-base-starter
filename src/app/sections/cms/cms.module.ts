@@ -28,12 +28,14 @@ BaseCMSModule.config = {
       },
       roles: {
         label: 'Rollen',
+        roles: ['admin'],
       },
       username: {
         label: 'Benutzername',
       },
       password: {
         exclude: true,
+        roles: ['admin'],
       },
     },
   },
