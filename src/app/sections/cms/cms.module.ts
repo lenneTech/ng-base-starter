@@ -5,11 +5,12 @@ import { BaseCMSModule } from '@lenne.tech/ng-base/base-cms';
 BaseCMSModule.config = {
   branding: true,
   logging: false,
+  logoUrl: '',
   modelConfig: {
     user: {
       label: 'Nutzer',
       plural: 'Nutzer',
-      excluded: false,
+      exclude: false,
       restricted: true,
       roles: ['admin'],
     },
@@ -28,6 +29,7 @@ BaseCMSModule.config = {
       },
       roles: {
         label: 'Rollen',
+        restricted: true,
         roles: ['admin'],
       },
       username: {

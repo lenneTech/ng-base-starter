@@ -11,6 +11,14 @@ const routes: Routes = [
       {
         path: 'login',
         component: LoginComponent,
+        data: {
+          config: {
+            redirectUrl: '/main',
+            showPasswordForget: true,
+            showRegister: true,
+            logoUrl: '',
+          },
+        },
       },
       {
         path: 'registrieren',
