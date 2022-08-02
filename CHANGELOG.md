@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [14.0.1](https://github.com/lenneTech/ng-base-starter/compare/v14.0.0...v14.0.1) (2022-08-02)
+
+### Bug Fixes
+
+- Fix bootstrap scss import after update ([edf9afd](https://github.com/lenneTech/ng-base-starter/commit/edf9afd4af0587a5b058919913bcc3fd0c7970bf))
+
 ## 14.0.0 (2022-08-02)
 
 ### Features
