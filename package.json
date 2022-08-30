@@ -1,6 +1,6 @@
 {
   "name": "app",
-  "version": "14.2.4",
+  "version": "14.3.0",
   "author": "lenne.Tech <info@lenne.tech> (https://lenne.tech)",
   "license": "MIT",
   "scripts": {
@@ -9,7 +9,9 @@
     "reinit": "rm -rf node_modules && rm -rf package-lock.json && npm cache clean --force && npm i",
     "start": "ng serve",
     "build": "ng build",
-    "test": "ng test",
+    "test": "ng test --watch=false --browsers ChromeHeadless",
+    "test:watch": "ng test --browsers ChromeHeadless",
+    "test:browser": "ng test",
     "lint": "ng lint",
     "watch": "ng build --watch --configuration development",
     "format": "npx prettier 'src/**/*.{js,jsx,ts,tsx,html,css,scss}' --write",
@@ -30,7 +32,7 @@
     "@angular/platform-browser": "14.1.1",
     "@angular/platform-browser-dynamic": "14.1.1",
     "@angular/router": "14.1.1",
-    "@lenne.tech/ng-base": "14.2.4",
+    "@lenne.tech/ng-base": "14.3.0",
     "apollo-angular": "3.0.1",
     "bootstrap": "5.2.0",
     "bootstrap-icons": "1.9.1",
