@@ -3,8 +3,8 @@ export const environment = {
 
   // Settings for @lenne.tech/ng-base
   prefix: 'app',
-  apiUrl: 'http://localhost:3000/graphql',
-  wsUrl: 'ws://localhost:3000/graphql',
+  apiUrl: 'http://127.0.0.1:3000/graphql',
+  wsUrl: 'ws://127.0.0.1:3000/graphql',
   authGuardRedirectUrl: '/auth',
   logging: false,
   // version: '0.0.1',
