@@ -1,6 +1,6 @@
 {
   "name": "app",
-  "version": "14.3.1",
+  "version": "14.4.0",
   "author": "lenne.Tech <info@lenne.tech> (https://lenne.tech)",
   "license": "MIT",
   "scripts": {
@@ -32,7 +32,7 @@
     "@angular/platform-browser": "14.1.1",
     "@angular/platform-browser-dynamic": "14.1.1",
     "@angular/router": "14.1.1",
-    "@lenne.tech/ng-base": "14.3.1",
+    "@lenne.tech/ng-base": "14.4.0",
     "apollo-angular": "3.0.1",
     "bootstrap": "5.2.0",
     "bootstrap-icons": "1.9.1",

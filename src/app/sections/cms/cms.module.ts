@@ -11,8 +11,8 @@ BaseCMSModule.config = {
       label: 'Nutzer',
       plural: 'Nutzer',
       exclude: false,
-      restricted: true,
-      roles: ['admin'],
+      // restricted: true,
+      // roles: ['admin'],
     },
   },
   fieldConfig: {
