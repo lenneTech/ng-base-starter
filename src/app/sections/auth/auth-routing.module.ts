@@ -1,7 +1,12 @@
 import { RouterModule, Routes } from '@angular/router';
 import { NgModule } from '@angular/core';
 import { AuthComponent } from './auth.component';
-import { ForgotPasswordComponent, LoginComponent, RegisterComponent } from '@lenne.tech/ng-base/base-prototype';
+import {
+  ForgotPasswordComponent,
+  LoginComponent,
+  RegisterComponent,
+  ResetPasswordComponent,
+} from '@lenne.tech/ng-base/base-prototype';
 
 const routes: Routes = [
   {
@@ -27,6 +32,10 @@ const routes: Routes = [
       {
         path: 'passwort-vergessen',
         component: ForgotPasswordComponent,
+      },
+      {
+        path: 'passwort-setzen/:token',
+        component: ResetPasswordComponent,
       },
       {
         path: '',

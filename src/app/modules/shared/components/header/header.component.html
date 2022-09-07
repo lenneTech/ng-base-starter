@@ -1,0 +1,33 @@
+<nav class="navbar navbar-light navbar-expand-lg fixed-top">
+  <div class="container">
+    <span class="navbar-brand cursor-pointer" routerLink="/">
+      <img height="40" [src]="env.logoPath" />
+    </span>
+
+    <div class="d-flex flex-row align-items-center" *ngIf="user">
+      <div class="dropdown d-flex flex-row align-items-center">
+        <div class="avatar">
+          <img *ngIf="!user?.avatar" src="https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?f=y" />
+          <img *ngIf="user?.avatar" [src]="env.restUrl + '/files/' + user.avatar" alt="Profilbild" />
+        </div>
+        <a
+          class="nav-link dropdown-toggle d-block ms-1"
+          href="#"
+          id="navbarDarkDropdownMenuLink"
+          role="button"
+          data-bs-toggle="dropdown"
+          aria-expanded="false">
+          {{ user.firstName }} {{ user.lastName }}
+        </a>
+        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
+          <li><a class="dropdown-item" routerLink="/profil">Mein Profil</a></li>
+          <ng-container *ngIf="user?.hasAllRoles(['admin'])">
+            <li><a class="dropdown-item" routerLink="/cms">Administration</a></li>
+          </ng-container>
+          <li><hr class="dropdown-divider" /></li>
+          <li><a class="dropdown-item" (click)="logout()">Ausloggen</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>

@@ -5,10 +5,18 @@ import { AuthGuard, BaseModule } from '@lenne.tech/ng-base';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { environment } from '../environments/environment';
+import { BaseComponentsModule } from '@lenne.tech/ng-base/base-components';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 @NgModule({
   declarations: [AppComponent],
-  imports: [BaseModule.forRoot(environment), BrowserModule, AppRoutingModule],
+  imports: [
+    BaseModule.forRoot(environment),
+    BrowserModule,
+    BrowserAnimationsModule,
+    AppRoutingModule,
+    BaseComponentsModule,
+  ],
   providers: [AuthGuard],
   bootstrap: [AppComponent],
 })
