@@ -5,7 +5,7 @@ import {
   ForgotPasswordComponent,
   LoginComponent,
   RegisterComponent,
-  ResetPasswordComponent,
+  SetPasswordComponent,
 } from '@lenne.tech/ng-base/base-prototype';
 
 const routes: Routes = [
@@ -35,7 +35,7 @@ const routes: Routes = [
       },
       {
         path: 'passwort-setzen/:token',
-        component: ResetPasswordComponent,
+        component: SetPasswordComponent,
       },
       {
         path: '',
