@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [14.23.0](https://github.com/lenneTech/ng-base-starter/compare/v14.0.1...v14.23.0) (2022-11-24)
+
+### Features
+
+- Updated angular to version 14.2.12 ([65b0c98](https://github.com/lenneTech/ng-base-starter/commit/65b0c98a97473f1b17be332e01729529710552ce))
+
 ### [14.0.1](https://github.com/lenneTech/ng-base-starter/compare/v14.0.0...v14.0.1) (2022-08-02)
 
 ### Bug Fixes
