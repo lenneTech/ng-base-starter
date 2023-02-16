@@ -1,0 +1,6 @@
+# Allow all URLs (see http://www.robotstxt.org/robotstxt.html)
+User-agent: *
+Disallow: /cms/
+Disallow: /admin/
+Disallow: /profil/
+Sitemap: /sitemap.xml

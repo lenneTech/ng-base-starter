@@ -12,7 +12,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
   declarations: [AppComponent],
   imports: [
     BaseModule.forRoot(environment),
-    BrowserModule,
+    BrowserModule.withServerTransition({ appId: 'serverApp' }),
     BrowserAnimationsModule,
     AppRoutingModule,
     BaseComponentsModule,
