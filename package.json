@@ -6,7 +6,7 @@
   "scripts": {
     "init": "npm install",
     "ng": "ng",
-    "reinit": "rm -rf node_modules && rm -rf package-lock.json && npm cache clean --force && npm i",
+    "reinit": "npx rimraf node_modules && npx rimraf package-lock.json && npm cache clean --force && npm i",
     "start": "ng serve",
     "start:external": "ng serve --host 0.0.0.0",
     "build": "ng build && ng run app:server",
