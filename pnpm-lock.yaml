@@ -47,8 +47,8 @@ importers:
         specifier: 1.7.16
         version: 1.7.16(@better-auth/core@1.7.16(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.5(zod@4.6.7))(jose@6.2.15)(kysely@0.29.8)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.16(mongodb@7.8.0)(vitest@5.1.0))(better-call@1.4.5(zod@4.6.7))(nanostores@1.5.5)
       '@lenne.tech/ng-base':
-        specifier: file:../ng-base/dist/ng-base
-        version: file:../ng-base/dist/ng-base(6156523900b1d8a4646684aedc5d5b17)
+        specifier: 22.0.0
+        version: 22.0.0(6156523900b1d8a4646684aedc5d5b17)
       '@ng-icons/core':
         specifier: 36.1.0
         version: 36.1.0(@angular-devkit/schematics@22.2.6(chokidar@5.0.0))(@angular/common@22.2.4(@angular/core@22.2.4(@angular/compiler@22.2.4)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.4(@angular/compiler@22.2.4)(rxjs@7.8.2))(@schematics/angular@22.2.6(chokidar@5.0.0))(rxjs@7.8.2)
@@ -100,9 +100,6 @@ importers:
       valibot:
         specifier: 1.5.0
         version: 1.5.0(typescript@6.0.3)
-    dependenciesMeta:
-      '@lenne.tech/ng-base':
-        injected: true
     devDependencies:
       '@angular/build':
         specifier: 22.2.6
@@ -1075,8 +1072,8 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@lenne.tech/ng-base@file:../ng-base/dist/ng-base':
-    resolution: {directory: ../ng-base/dist/ng-base, type: directory}
+  '@lenne.tech/ng-base@22.0.0':
+    resolution: {integrity: sha512-axebdLtGQYDb2Xcl+VarKNwOTKcklWPKRCiN2C6sVLvqA61yPtwM0QUSUG+fMA9eFxGoeYZX+KWnwWsIpDVYUQ==}
     peerDependencies:
       '@angular/cdk': ^22.2.0
       '@angular/common': ^22.2.0
@@ -5225,7 +5222,7 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@lenne.tech/ng-base@file:../ng-base/dist/ng-base(6156523900b1d8a4646684aedc5d5b17)':
+  '@lenne.tech/ng-base@22.0.0(6156523900b1d8a4646684aedc5d5b17)':
     dependencies:
       '@angular/cdk': 22.2.6(@angular/common@22.2.4(@angular/core@22.2.4(@angular/compiler@22.2.4)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.4(@angular/compiler@22.2.4)(rxjs@7.8.2))(@angular/forms@22.2.4(@angular/common@22.2.4(@angular/core@22.2.4(@angular/compiler@22.2.4)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.4(@angular/compiler@22.2.4)(rxjs@7.8.2))(@angular/platform-browser@22.2.4(@angular/common@22.2.4(@angular/core@22.2.4(@angular/compiler@22.2.4)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.4(@angular/compiler@22.2.4)(rxjs@7.8.2)))(rxjs@7.8.2))(@angular/platform-browser@22.2.4(@angular/common@22.2.4(@angular/core@22.2.4(@angular/compiler@22.2.4)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.4(@angular/compiler@22.2.4)(rxjs@7.8.2)))(rxjs@7.8.2)
       '@angular/common': 22.2.4(@angular/core@22.2.4(@angular/compiler@22.2.4)(rxjs@7.8.2))(rxjs@7.8.2)
