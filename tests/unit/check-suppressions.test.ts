@@ -764,7 +764,8 @@ describe('wiring', () => {
   it('runs in every check chain: after the audit in raw and fix, after the install in naf', () => {
     expect(pkg.scripts['check:raw']).toContain('pnpm audit && node scripts/check-suppressions.mjs &&');
     expect(pkg.scripts['check:fix']).toContain('pnpm audit --fix && node scripts/check-suppressions.mjs &&');
-    expect(pkg.scripts['check:naf']).toContain('pnpm install && node scripts/check-suppressions.mjs &&');
+    // In vendor mode the CLI puts `check:vendor-freshness` right after the install.
+    expect(pkg.scripts['check:naf']).toMatch(/pnpm install && (?:pnpm run check:vendor-freshness && )?node scripts\/check-suppressions\.mjs &&/);
   });
 
   it('gives the step its own kind in check.mjs, so an unverified run is not a plain tick', () => {

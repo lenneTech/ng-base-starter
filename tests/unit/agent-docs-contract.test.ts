@@ -33,7 +33,8 @@ function cliRulesTemplate(): string {
  * from 1.57.1 into both files; either way the rest has to be the same.
  */
 function withoutLtDevUrlBlock(text: string): string {
-  return text.replace(/\n*<!-- lt-dev:url-block:start -->[\s\S]*?<!-- lt-dev:url-block:end -->\n*/g, '\n');
+  // trimEnd: Markdown ends without a final newline here; a block appended at the end leaves one behind.
+  return text.replace(/\n*<!-- lt-dev:url-block:start -->[\s\S]*?<!-- lt-dev:url-block:end -->\n*/g, '\n').trimEnd();
 }
 
 describe('agent docs', () => {
@@ -47,6 +48,8 @@ describe('agent docs', () => {
     const block = '<!-- lt-dev:url-block:start -->\n## Local URLs\n\n- App: https://x.localhost\n<!-- lt-dev:url-block:end -->';
     const text = '# Title\n\nRules.\n';
     expect(withoutLtDevUrlBlock(`${text}\n${block}\n`)).toBe(withoutLtDevUrlBlock(text));
+    // As lt CLI 1.57.0 does it: appended to a file that ends without a newline.
+    expect(withoutLtDevUrlBlock(`# Title\n\nRules.\n\n${block}\n`)).toBe(withoutLtDevUrlBlock('# Title\n\nRules.'));
     expect(withoutLtDevUrlBlock(`${text}\n${block}\n`)).not.toBe(withoutLtDevUrlBlock('# Title\n\nOther rules.\n'));
   });
 
