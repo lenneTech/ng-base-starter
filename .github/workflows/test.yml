@@ -11,7 +11,7 @@ on:
 jobs:
   check:
     name: Check
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     steps:
       - name: Checkout repository
@@ -44,7 +44,7 @@ jobs:
 
   e2e-auth:
     name: E2E Auth (against a real API)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     needs: [check]
     services:
