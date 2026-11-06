@@ -1,5 +1,7 @@
-/* `source('.')`: Tailwind scans src/ only, not the rest of the workspace. */
+/* `source('.')`: Tailwind scans src/ only, not the rest of the workspace. Not src/core/ either: in vendor mode ng-base
+   lives there, and its classes come from the component files below; scanning it too doubled the CSS. */
 @import 'tailwindcss' source('.');
+@source not './core';
 
 /* ng-base: the theme core (Spartan preset, lenne.Tech palette, semantic tokens, transitions, base layer) plus the CSS of
    each component the app renders. Every file pulls in what it builds on (lt-select brings select and combobox).
