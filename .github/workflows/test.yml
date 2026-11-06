@@ -11,18 +11,18 @@ on:
 jobs:
   check:
     name: Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # pnpm version comes from package.json `packageManager` (single source of truth).
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: 'pnpm'
@@ -44,7 +44,7 @@ jobs:
 
   e2e-auth:
     name: E2E Auth (against a real API)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     needs: [check]
     services:
@@ -70,20 +70,20 @@ jobs:
       NSC__AI__MCP__ENABLED: 'true'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Checkout nest-server-starter (the API side of the contract)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: lenneTech/nest-server-starter
           ref: main
           path: api
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: 'pnpm'
@@ -199,7 +199,7 @@ jobs:
       # NEVER upload the API log: it carries live bearer credentials (a verification token grants
       # email verification for that account to whoever holds it). The Playwright report is safe.
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
@@ -217,13 +217,13 @@ jobs:
         run: git config --global core.autocrlf true
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: 'pnpm'
