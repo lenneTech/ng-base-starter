@@ -56,7 +56,7 @@ export class AiPromptsPage {
   private readonly userId = computed(() => this.auth.user()?.id);
 
   constructor() {
-    afterNextRender(() => void this.prompts.load());
+    afterNextRender(() => void this.prompts.load({ includeDisabled: true }));
   }
 
   protected canMutate(prompt: LtAiPrompt): boolean {

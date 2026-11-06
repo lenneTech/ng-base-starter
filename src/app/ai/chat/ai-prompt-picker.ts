@@ -25,7 +25,7 @@ export class AiPromptPicker {
   protected readonly prompts = inject(LtAiPromptsService);
   private readonly errors = inject(LtErrorTranslationService);
 
-  protected readonly groups = computed(() => groupPrompts(this.prompts.prompts()));
+  protected readonly groups = computed(() => groupPrompts(this.prompts.enabledPrompts()));
   protected readonly errorText = computed(() => {
     const error = this.prompts.error();
     return error ? this.errors.translateError(error) : null;
