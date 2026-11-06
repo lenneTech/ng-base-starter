@@ -128,7 +128,7 @@ Organise by **feature**, never by type (no `components/`, `services/` folders). 
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `pnpm run dev`                  | `ng serve` on port 3001 (refuses a busy port), dev proxy `/api/*` and `/iam/*` → `NG_API_URL`, loads `.env`       |
 | `pnpm run build`                | production build into `NG_OUTPUT_DIR` (default `.output`) plus the shim `.output/server/index.mjs`                |
-| `node .output/server/index.mjs` | the built server (`PORT`, default 3000; `HOST`)                                                                   |
+| `node .output/server/index.mjs` | the built server (`PORT`, default 3001, the image sets 3000; `HOST`)                                              |
 | `pnpm test`                     | `ng test` (specs in `src/`) and Vitest (`tests/unit/`)                                                            |
 | `pnpm run test:e2e`             | Playwright against API :3000 and app :3001 (see `docs/e2e-auth.md`)                                               |
 | `pnpm run check`                | the full gate: install, audit, suppressions, overrides, peers, format, lint, tests, build, typecheck, server boot |

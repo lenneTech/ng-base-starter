@@ -7,6 +7,7 @@ import { join } from 'node:path';
 
 import { version } from '../package.json';
 import { resolveAllowedHosts } from './server/allowed-hosts';
+import { resolveListenAddress } from './server/listen-address';
 import { buildRobotsTxt, buildSitemapXml, robotsTagFor } from './server/seo-routes';
 import { starterRuntimeConfig } from './server/starter-runtime-config';
 
@@ -81,10 +82,9 @@ app.use(
   }),
 );
 
-/** Listens on `PORT` (default 3000, the container port) and `HOST` (all interfaces when unset). */
+/** Listens on `PORT` (default 3001, the app port; the image sets 3000) and `HOST` (all interfaces when unset). */
 export function startServer(): Server {
-  const port = Number.parseInt(process.env['PORT'] ?? '', 10) || 3000;
-  const host = process.env['HOST']?.trim() || undefined;
+  const { host, port } = resolveListenAddress(process.env);
   const server = app.listen(port, host as string, (error?: Error) => {
     if (error) {
       throw error;

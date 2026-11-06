@@ -40,7 +40,7 @@ and passkeys fail with `403 INVALID_ORIGIN` on any other. `pnpm run dev` refuses
 | ------------------------------- | ----------------------------------------------------------- |
 | `pnpm run dev`                  | dev server with SSR, proxy `/api/*` and `/iam/*` to the API |
 | `pnpm run build`                | production build into `.output/` (`NG_OUTPUT_DIR` moves it) |
-| `node .output/server/index.mjs` | run the build (`PORT`, default 3000)                        |
+| `node .output/server/index.mjs` | run the build (`PORT`, default 3001; the image sets 3000)   |
 | `pnpm test`                     | unit tests                                                  |
 | `pnpm run test:e2e`             | Playwright against a running API (see `docs/e2e-auth.md`)   |
 | `pnpm run check`                | everything a commit must pass                               |

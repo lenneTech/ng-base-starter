@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { resolveAllowedHosts } from '../../../src/server/allowed-hosts';
+import { resolveListenAddress } from '../../../src/server/listen-address';
 import { buildRobotsTxt, buildSitemapXml, isNoindexPath, NOINDEX_VALUE, robotsTagFor } from '../../../src/server/seo-routes';
 import { starterRuntimeConfig } from '../../../src/server/starter-runtime-config';
 
@@ -22,6 +23,20 @@ describe('starterRuntimeConfig (the starter values next to ng-base runtime confi
 
   it('ignores the Nuxt variable name, which an Angular image never reads', () => {
     expect(starterRuntimeConfig({ NUXT_PLAUSIBLE_API_URL: 'https://plausible.example.com' })).toEqual({ plausibleApiHost: '' });
+  });
+});
+
+describe('resolveListenAddress (where the built server listens)', () => {
+  it('defaults to 3001, the app port of the backend contract, so a local run never collides with the API on 3000', () => {
+    expect(resolveListenAddress({})).toEqual({ host: undefined, port: 3001 });
+  });
+
+  it('takes PORT and HOST from the environment (the image sets PORT=3000, HOST=0.0.0.0)', () => {
+    expect(resolveListenAddress({ HOST: ' 0.0.0.0 ', PORT: '3000' })).toEqual({ host: '0.0.0.0', port: 3000 });
+  });
+
+  it('ignores an unusable PORT and a blank HOST', () => {
+    expect(resolveListenAddress({ HOST: '  ', PORT: 'abc' })).toEqual({ host: undefined, port: 3001 });
   });
 });
 
