@@ -1,0 +1,9 @@
+<router-outlet />
+@defer (on idle) {
+  <app-toaster />
+}
+@if (bugActive) {
+  @defer (on immediate) {
+    <lt-bug-report />
+  }
+}

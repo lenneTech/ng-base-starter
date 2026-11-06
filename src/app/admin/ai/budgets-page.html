@@ -1,0 +1,74 @@
+<div class="mx-auto max-w-4xl space-y-6 px-4 py-8">
+  <lt-page-title title="KI-Budgets" description="Token- und Anfrage-Limits pro Nutzer oder Tenant (0/leer = unbegrenzt)." />
+
+  <form hlmCard [formRoot]="budgetForm" aria-labelledby="new-budget-title">
+    <div hlmCardHeader>
+      <h2 id="new-budget-title" hlmCardTitle>Neues Limit</h2>
+    </div>
+    <div hlmCardContent class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <lt-form-field for="budget-scope" label="Bereich">
+        <lt-select id="budget-scope" [options]="scopeOptions" [formField]="budgetForm.scope" />
+      </lt-form-field>
+      <lt-form-field for="budget-period" label="Zeitraum">
+        <lt-select id="budget-period" [options]="periodOptions" [formField]="budgetForm.period" />
+      </lt-form-field>
+      <lt-form-field for="budget-ref-id" label="Referenz-ID (Nutzer/Tenant)" class="sm:col-span-2">
+        <input hlmInput id="budget-ref-id" autocomplete="off" placeholder="ObjectId" [formField]="budgetForm.refId" />
+      </lt-form-field>
+      <lt-form-field for="budget-max-tokens" label="Max. Tokens">
+        <input hlmInput id="budget-max-tokens" type="number" inputmode="numeric" placeholder="unbegrenzt" [formField]="budgetForm.maxTokens" />
+      </lt-form-field>
+      <lt-form-field for="budget-max-prompts" label="Max. Anfragen">
+        <input hlmInput id="budget-max-prompts" type="number" inputmode="numeric" placeholder="unbegrenzt" [formField]="budgetForm.maxPrompts" />
+      </lt-form-field>
+    </div>
+    <div hlmCardFooter>
+      <button hlmBtn type="submit" [disabled]="saving()" [attr.aria-busy]="saving()">
+        <ng-icon [name]="saving() ? 'lucideLoaderCircle' : 'lucidePlus'" [class]="saving() ? 'motion-safe:animate-spin' : ''" aria-hidden="true" />
+        Limit anlegen
+      </button>
+    </div>
+  </form>
+
+  <section hlmCard aria-labelledby="budgets-title">
+    <div hlmCardHeader>
+      <h2 id="budgets-title" hlmCardTitle>Bestehende Limits</h2>
+    </div>
+    <div hlmCardContent>
+      @if (limits.isLoading()) {
+        <div class="py-8 text-center text-muted-foreground" role="status">
+          <ng-icon name="lucideLoaderCircle" size="1.5rem" class="motion-safe:animate-spin" aria-hidden="true" />
+          <span class="sr-only">Limits werden geladen</span>
+        </div>
+      } @else if (loadError()) {
+        <lt-notice variant="error" title="Limits konnten nicht geladen werden">{{ loadError() }}</lt-notice>
+      } @else if (!list().length) {
+        <p class="py-8 text-center text-muted-foreground">Keine Limits konfiguriert.</p>
+      } @else {
+        <ul class="divide-y">
+          @for (limit of list(); track limit.id ?? $index) {
+            <li class="flex items-center justify-between gap-3 py-3">
+              <div class="min-w-0">
+                <p class="break-all font-medium">{{ scopeLabel(limit.scope) }} · {{ limit.refId }}</p>
+                <p class="text-xs text-muted-foreground">
+                  {{ limitValue(limit.maxTokens) }} Tokens · {{ limitValue(limit.maxPrompts) }} Anfragen · {{ periodLabel(limit.period) }}
+                </p>
+              </div>
+              <button
+                hlmBtn
+                variant="ghost"
+                size="icon-sm"
+                type="button"
+                class="shrink-0 text-destructive"
+                [attr.aria-label]="'Budget löschen: ' + scopeLabel(limit.scope) + ' ' + limit.refId"
+                (click)="remove(limit)"
+              >
+                <ng-icon name="lucideTrash" aria-hidden="true" />
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+</div>

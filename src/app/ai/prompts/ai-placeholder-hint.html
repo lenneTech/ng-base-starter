@@ -1,0 +1,40 @@
+<section hlmCard aria-labelledby="ai-placeholder-hint-title">
+  <div hlmCardHeader class="flex flex-row items-center gap-2">
+    <ng-icon name="lucideBraces" size="1rem" aria-hidden="true" />
+    <h3 id="ai-placeholder-hint-title" class="font-semibold">Verfügbare Platzhalter</h3>
+  </div>
+  <div hlmCardContent>
+    <p class="mb-3 text-xs text-muted-foreground">
+      Tokens wie <code>{{ exampleToken }}</code> werden zur Laufzeit ersetzt. Klick auf einen Eintrag kopiert ihn.
+    </p>
+    @if (placeholders.loading()) {
+      <div class="py-4 text-center text-muted-foreground" role="status">
+        <ng-icon name="lucideLoaderCircle" size="1.25rem" class="animate-spin" aria-label="Lädt" />
+      </div>
+    } @else if (errorText(); as error) {
+      <lt-notice variant="error">{{ error }}</lt-notice>
+    } @else if (placeholders.placeholders().length === 0) {
+      <p class="py-2 text-xs text-muted-foreground">Keine Platzhalter verfügbar.</p>
+    } @else {
+      <ul class="space-y-2">
+        @for (placeholder of placeholders.placeholders(); track placeholder.name) {
+          <li>
+            <button
+              type="button"
+              class="w-full cursor-pointer rounded-md p-2 text-start outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+              [attr.title]="placeholder.example || null"
+              (click)="copy(placeholder.name)"
+            >
+              <span class="flex items-center gap-2">
+                <span hlmBadge variant="outline">{{ token(placeholder.name) }}</span>
+                <ng-icon name="lucideCopy" size="0.75rem" class="text-muted-foreground" aria-hidden="true" />
+                <span class="sr-only">kopieren</span>
+              </span>
+              <span class="mt-1 block text-xs text-muted-foreground">{{ placeholder.description }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</section>

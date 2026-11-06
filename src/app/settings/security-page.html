@@ -1,0 +1,158 @@
+<div class="mx-auto max-w-2xl space-y-8 px-4 py-8">
+  <div>
+    <h1 class="text-2xl font-bold">Sicherheit</h1>
+    <p class="text-muted-foreground">Verwalte deine Sicherheitseinstellungen</p>
+  </div>
+
+  <section hlmCard aria-labelledby="two-factor-title">
+    <div hlmCardHeader class="flex flex-row items-center gap-3">
+      <ng-icon name="lucideShieldCheck" size="1.5rem" class="text-primary" aria-hidden="true" />
+      <div>
+        <h2 #twoFactorTitle id="two-factor-title" tabindex="-1" hlmCardTitle class="outline-none">Zwei-Faktor-Authentifizierung</h2>
+        <p hlmCardDescription>Zusätzliche Sicherheit für dein Konto</p>
+      </div>
+    </div>
+    <div hlmCardContent class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="font-medium">Status</p>
+          <p class="text-sm text-muted-foreground">{{ auth.is2FAEnabled() ? '2FA ist aktiviert' : '2FA ist deaktiviert' }}</p>
+        </div>
+        <span hlmBadge [variant]="auth.is2FAEnabled() ? 'default' : 'secondary'">{{ auth.is2FAEnabled() ? 'Aktiv' : 'Inaktiv' }}</span>
+      </div>
+
+      @if (!auth.is2FAEnabled() && !showTotpSetup()) {
+        <form [formRoot]="enableForm" class="space-y-4">
+          <lt-form-field for="enable-2fa-password" label="Passwort bestätigen" [error]="fieldError(enableForm.password)">
+            <lt-password-input id="enable-2fa-password" autocomplete="current-password" placeholder="Dein Passwort" [formField]="enableForm.password" />
+          </lt-form-field>
+          <button hlmBtn type="submit" [disabled]="loading()">2FA aktivieren</button>
+        </form>
+      }
+
+      @if (showTotpSetup()) {
+        <div class="space-y-4">
+          <p class="text-sm text-muted-foreground">Scanne den QR-Code mit deiner Authenticator-App (z.B. Google Authenticator, Authy) und gib den Code ein.</p>
+          @if (qrCodeSvg(); as svg) {
+            <div class="flex justify-center">
+              <div class="rounded-lg bg-white p-2" role="img" aria-label="QR-Code für die Authenticator-App" [innerHTML]="svg"></div>
+            </div>
+          }
+          <form [formRoot]="totpForm" class="space-y-4">
+            <lt-form-field for="totp-code" label="Verifizierungscode" [error]="fieldError(totpForm.code)">
+              <input
+                hlmInput
+                id="totp-code"
+                class="text-center font-mono"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                placeholder="000000"
+                [formField]="totpForm.code"
+                aria-describedby="totp-code-error"
+              />
+            </lt-form-field>
+            <div class="flex gap-2">
+              <button hlmBtn type="submit" [disabled]="loading()">Verifizieren</button>
+              <button hlmBtn variant="outline" type="button" (click)="resetTotpSetup()">Abbrechen</button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if (auth.is2FAEnabled() && !show2FADisable()) {
+        <div class="flex gap-2">
+          <button hlmBtn variant="outline" type="button" (click)="show2FADisable.set(true)">2FA deaktivieren</button>
+          <button hlmBtn variant="outline" type="button" (click)="openBackupCodes()">Backup-Codes anzeigen</button>
+        </div>
+      }
+
+      @if (show2FADisable()) {
+        <form [formRoot]="disableForm" class="space-y-4">
+          <lt-notice variant="warning">2FA zu deaktivieren verringert die Sicherheit deines Kontos.</lt-notice>
+          <lt-form-field for="disable-2fa-password" label="Passwort bestätigen" [error]="fieldError(disableForm.password)">
+            <lt-password-input id="disable-2fa-password" autocomplete="current-password" placeholder="Dein Passwort" [formField]="disableForm.password" />
+          </lt-form-field>
+          <div class="flex gap-2">
+            <button hlmBtn variant="destructive" type="submit" [disabled]="loading()">2FA deaktivieren</button>
+            <button hlmBtn variant="outline" type="button" (click)="show2FADisable.set(false)">Abbrechen</button>
+          </div>
+        </form>
+      }
+    </div>
+  </section>
+
+  <section hlmCard aria-labelledby="passkeys-title">
+    <div hlmCardHeader class="flex flex-row items-center gap-3">
+      <ng-icon name="lucideFingerprint" size="1.5rem" class="text-primary" aria-hidden="true" />
+      <div>
+        <h2 id="passkeys-title" hlmCardTitle>Passkeys</h2>
+        <p hlmCardDescription>Passwordlose Anmeldung mit biometrischen Daten</p>
+      </div>
+    </div>
+    <div hlmCardContent class="space-y-4">
+      @if (passkeys().length > 0) {
+        <ul class="divide-y">
+          @for (passkey of passkeys(); track passkey.id) {
+            <li class="flex items-center justify-between py-3">
+              <div class="flex items-center gap-3">
+                <ng-icon name="lucideKeyRound" size="1.25rem" class="text-muted-foreground" aria-hidden="true" />
+                <div>
+                  <p class="font-medium">{{ passkey.name || 'Unbenannter Passkey' }}</p>
+                  @if (passkey.createdAt) {
+                    <p class="text-xs text-muted-foreground">Erstellt am {{ passkey.createdAt | date: 'dd.MM.yyyy' }}</p>
+                  }
+                </div>
+              </div>
+              <button hlmBtn variant="destructive" size="sm" type="button" [disabled]="passkeyLoading()" (click)="deletePasskey(passkey.id)">
+                <ng-icon name="lucideTrash" aria-hidden="true" />
+                Löschen
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="py-4 text-center text-muted-foreground">Du hast noch keine Passkeys eingerichtet.</p>
+      }
+
+      @if (!showAddPasskey()) {
+        <button hlmBtn variant="outline" type="button" (click)="showAddPasskey.set(true)">
+          <ng-icon name="lucidePlus" aria-hidden="true" />
+          Passkey hinzufügen
+        </button>
+      } @else {
+        <div class="flex gap-2">
+          <label for="passkey-name" class="sr-only">Name für den Passkey</label>
+          <input hlmInput id="passkey-name" class="flex-1" placeholder="Name für den Passkey" [value]="newPasskeyName()" (input)="setPasskeyName($event)" />
+          <button hlmBtn type="button" [disabled]="passkeyLoading()" (click)="addPasskey()">Hinzufügen</button>
+          <button hlmBtn variant="outline" type="button" (click)="cancelAddPasskey()">Abbrechen</button>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section hlmCard aria-labelledby="account-info-title">
+    <div hlmCardHeader class="flex flex-row items-center gap-3">
+      <ng-icon name="lucideUser" size="1.5rem" class="text-primary" aria-hidden="true" />
+      <div>
+        <h2 id="account-info-title" hlmCardTitle>Kontoinformationen</h2>
+        <p hlmCardDescription>Deine Kontodaten</p>
+      </div>
+    </div>
+    <dl hlmCardContent class="space-y-3">
+      <div class="flex justify-between">
+        <dt class="text-muted-foreground">E-Mail</dt>
+        <dd class="font-medium">{{ auth.user()?.email }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-muted-foreground">Name</dt>
+        <dd class="font-medium">{{ auth.user()?.name || '-' }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-muted-foreground">E-Mail verifiziert</dt>
+        <dd>
+          <span hlmBadge [variant]="auth.user()?.emailVerified ? 'default' : 'secondary'">{{ auth.user()?.emailVerified ? 'Ja' : 'Nein' }}</span>
+        </dd>
+      </div>
+    </dl>
+  </section>
+</div>

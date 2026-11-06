@@ -1,19 +1,7 @@
-/***************************************************************************************************
- * Initialize the server environment - for example, adding DOM built-in types to the global scope.
- *
- * NOTE:
- * This import must come before any imports (direct or transitive) that rely on DOM built-ins being
- * available, such as `@angular/elements`.
- */
-import '@angular/platform-server/init';
+import { BootstrapContext, bootstrapApplication } from '@angular/platform-browser';
+import { App } from './app/app';
+import { config } from './app/app.config.server';
 
-import { enableProdMode } from '@angular/core';
+const bootstrap = (context: BootstrapContext) => bootstrapApplication(App, config, context);
 
-import { environment } from './environments/environment';
-
-if (environment.production) {
-  enableProdMode();
-}
-
-export { AppServerModule } from './app/app.server.module';
-export { renderModule } from '@angular/platform-server';
+export default bootstrap;

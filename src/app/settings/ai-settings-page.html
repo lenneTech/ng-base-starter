@@ -1,0 +1,159 @@
+<div class="mx-auto max-w-2xl space-y-8 px-4 py-8">
+  <div>
+    <h1 class="text-2xl font-bold">KI-Einstellungen</h1>
+    <p class="text-muted-foreground">Wähle deine bevorzugte KI-Verbindung{{ status.mcp() ? ', lege die MCP-Rückfrage fest' : '' }} und sieh deinen Verbrauch.</p>
+  </div>
+
+  <!-- Connection selection -->
+  <section hlmCard aria-labelledby="ai-connection-title">
+    <div hlmCardHeader class="flex flex-row items-center gap-3">
+      <ng-icon name="lucidePlug" size="1.5rem" class="text-primary" aria-hidden="true" />
+      <div>
+        <h2 id="ai-connection-title" hlmCardTitle tabindex="-1" class="outline-none">KI-Verbindung</h2>
+        <p hlmCardDescription>Deine Standard-Verbindung für Anfragen</p>
+      </div>
+    </div>
+    <div hlmCardContent class="space-y-3">
+      @if (connections.locked()) {
+        <lt-notice variant="info">Die Verbindung ist vorgegeben und kann nicht geändert werden.</lt-notice>
+      }
+      @if (connections.connections().length === 0) {
+        <p class="py-4 text-center text-muted-foreground">Keine KI-Verbindung verfügbar.</p>
+      } @else {
+        <ul>
+          @for (connection of connections.connections(); track connection.id) {
+            @let active = connection.id === connections.selected()?.id;
+            <li class="flex items-center justify-between py-2">
+              <div class="flex items-center gap-3">
+                @if (active) {
+                  <ng-icon name="lucideCircleCheck" size="1.25rem" class="text-primary" aria-hidden="true" />
+                } @else {
+                  <ng-icon name="lucideCircle" size="1.25rem" class="text-muted-foreground" aria-hidden="true" />
+                }
+                <div>
+                  <p class="font-medium" [id]="'ai-connection-' + $index">{{ connection.name || connection.id }}</p>
+                  <p class="text-xs text-muted-foreground">
+                    {{ connection.model }}
+                    @if (connection.isDefault) {
+                      <span> · Standard</span>
+                    }
+                  </p>
+                </div>
+              </div>
+              @if (active) {
+                <span hlmBadge>Aktiv</span>
+              } @else {
+                <button
+                  hlmBtn
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  [attr.aria-describedby]="'ai-connection-' + $index"
+                  [disabled]="connections.locked()"
+                  (click)="choose(connection.id)"
+                >
+                  Auswählen
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+
+  <!-- MCP confirmation: only while the API runs an MCP server -->
+  @if (status.mcp()) {
+    <section hlmCard aria-labelledby="ai-mcp-title">
+      <div hlmCardHeader class="flex flex-row items-center gap-3">
+        <ng-icon name="lucideShieldCheck" size="1.5rem" class="text-primary" aria-hidden="true" />
+        <div>
+          <h2 id="ai-mcp-title" hlmCardTitle>MCP-Rückfrage</h2>
+          <p hlmCardDescription>Für KI-Clients wie Claude Desktop oder Claude Code, die über MCP in deinem Namen arbeiten</p>
+        </div>
+      </div>
+      <div hlmCardContent class="space-y-3">
+        @if (settings.enforced()) {
+          <lt-notice variant="info">Die Einstellung ist vom Server festgelegt und kann nicht geändert werden.</lt-notice>
+        }
+        <!-- Only once the settings are there: a switch without them would show a value the server does not hold. -->
+        @if (settings.settings(); as current) {
+          @for (generation of [switchGeneration()]; track generation) {
+            <div class="flex items-start gap-3">
+              <hlm-switch
+                class="mt-0.5"
+                aria-describedby="ai-mcp-confirmation-description"
+                inputId="ai-mcp-confirmation"
+                [checked]="current.mcpConfirmation"
+                [disabled]="settings.enforced() || settings.loading()"
+                (checkedChange)="setMcpConfirmation($event)"
+              />
+              <div class="space-y-1">
+                <label for="ai-mcp-confirmation" class="text-sm font-medium">Vor destruktiven Aktionen nachfragen</label>
+                <p id="ai-mcp-confirmation-description" class="text-sm text-muted-foreground">
+                  Bevor ein MCP-Client in deinem Namen zum Beispiel Daten löscht, fragt er dich. Der Chat in der App und andere Nutzer sind davon nicht betroffen.
+                </p>
+              </div>
+            </div>
+          }
+          @if (current.mcpConfirmation === false) {
+            <lt-notice variant="warning" title="Rückfrage ausgeschaltet">
+              Destruktive Aktionen werden über MCP ohne Rückfrage ausgeführt. Die Rechte deines Kontos und die Regeln der Administration gelten weiterhin.
+            </lt-notice>
+          }
+        } @else if (settings.error()) {
+          <p class="text-sm text-muted-foreground">Die Einstellung ist gerade nicht verfügbar.</p>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Usage -->
+  <section hlmCard aria-labelledby="ai-usage-title">
+    <div hlmCardHeader class="flex flex-row items-center gap-3">
+      <ng-icon name="lucideGauge" size="1.5rem" class="text-primary" aria-hidden="true" />
+      <div>
+        <h2 id="ai-usage-title" hlmCardTitle>Verbrauch</h2>
+        <p hlmCardDescription>Dein Token-Kontingent im aktuellen Zeitraum</p>
+      </div>
+    </div>
+    <div hlmCardContent>
+      @if (userUsage(); as user) {
+        <div class="space-y-4">
+          <div>
+            <div class="mb-1 flex justify-between text-sm">
+              <span id="ai-usage-tokens-label" class="text-muted-foreground">Tokens</span>
+              <span class="font-medium">
+                {{ user.usedTokens }}
+                @if (user.maxTokens) {
+                  / {{ user.maxTokens }}
+                }
+              </span>
+            </div>
+            @if (user.maxTokens) {
+              <hlm-progress aria-labelledby="ai-usage-tokens-label" [value]="userTokensPercent()">
+                <hlm-progress-indicator />
+              </hlm-progress>
+            } @else {
+              <p class="text-xs text-muted-foreground">Unbegrenzt</p>
+            }
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-muted-foreground">Anfragen</span>
+            <span class="font-medium">
+              {{ user.usedPrompts }}
+              @if (user.maxPrompts) {
+                / {{ user.maxPrompts }}
+              }
+            </span>
+          </div>
+          @if (userResetAt()) {
+            <p class="text-xs text-muted-foreground">Zurücksetzung: {{ userResetAt() }}</p>
+          }
+        </div>
+      } @else {
+        <p class="py-4 text-center text-muted-foreground">Keine Verbrauchsdaten verfügbar.</p>
+      }
+    </div>
+  </section>
+</div>

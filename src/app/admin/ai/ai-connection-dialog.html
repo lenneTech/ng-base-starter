@@ -1,0 +1,78 @@
+<div hlmDialogHeader>
+  <h2 hlmDialogTitle>{{ isEdit ? 'Verbindung bearbeiten' : 'Verbindung hinzufügen' }}</h2>
+</div>
+
+<form [formRoot]="connectionForm" class="space-y-4">
+  <lt-form-field for="ai-connection-name" label="Name" [error]="fieldError(connectionForm.name)" [required]="true">
+    <input
+      hlmInput
+      id="ai-connection-name"
+      autocomplete="off"
+      placeholder="z.B. Default LLM"
+      [formField]="connectionForm.name"
+      [attr.aria-invalid]="!!fieldError(connectionForm.name)"
+    />
+  </lt-form-field>
+
+  <lt-form-field for="ai-connection-provider" label="Provider" hint="Backend-Art der Verbindung">
+    <lt-select id="ai-connection-provider" [options]="providerOptions" [formField]="connectionForm.providerType" />
+  </lt-form-field>
+
+  @if (!connectionForm.baseUrl().hidden()) {
+    <lt-form-field for="ai-connection-base-url" label="Basis-URL" [hint]="baseUrlHint" [error]="fieldError(connectionForm.baseUrl)" [required]="true">
+      <input
+        hlmInput
+        id="ai-connection-base-url"
+        type="url"
+        autocomplete="off"
+        [placeholder]="baseUrlExample"
+        [formField]="connectionForm.baseUrl"
+        [attr.aria-invalid]="!!fieldError(connectionForm.baseUrl)"
+      />
+    </lt-form-field>
+  }
+
+  <lt-form-field
+    for="ai-connection-model"
+    label="Modell"
+    [hint]="isCli() ? 'Claude-Alias, z.B. sonnet, opus oder haiku' : undefined"
+    [error]="fieldError(connectionForm.model)"
+    [required]="true"
+  >
+    <input
+      hlmInput
+      id="ai-connection-model"
+      autocomplete="off"
+      [placeholder]="isCli() ? 'z.B. sonnet' : 'z.B. gpt-oss-120b'"
+      [formField]="connectionForm.model"
+      [attr.aria-invalid]="!!fieldError(connectionForm.model)"
+    />
+  </lt-form-field>
+
+  <lt-form-field for="ai-connection-api-key" label="API-Key" [hint]="isEdit ? 'Leer lassen, um den vorhandenen Key zu behalten' : 'Optional — wird verschlüsselt gespeichert'">
+    <input hlmInput id="ai-connection-api-key" type="password" autocomplete="off" [placeholder]="isEdit ? '•••••••• (unverändert)' : 'sk-…'" [formField]="connectionForm.apiKey" />
+  </lt-form-field>
+
+  <div class="grid grid-cols-2 gap-3">
+    <lt-form-field for="ai-connection-json" label="JSON-Modus">
+      <lt-select id="ai-connection-json" [options]="triStateOptions" [formField]="connectionForm.supportsJsonResponse" />
+    </lt-form-field>
+    <lt-form-field for="ai-connection-tools" label="Native Tools">
+      <lt-select id="ai-connection-tools" [options]="triStateOptions" [formField]="connectionForm.supportsNativeTools" />
+    </lt-form-field>
+  </div>
+
+  <lt-form-field for="ai-connection-max-tokens" label="Max. Tokens">
+    <input hlmInput id="ai-connection-max-tokens" type="number" inputmode="numeric" placeholder="4096" [formField]="connectionForm.defaultMaxTokens" />
+  </lt-form-field>
+
+  <div class="flex items-center gap-2">
+    <hlm-checkbox inputId="ai-connection-default" [formField]="connectionForm.isDefault" />
+    <label for="ai-connection-default" class="text-sm">Als globalen Standard setzen</label>
+  </div>
+
+  <div hlmDialogFooter class="pt-2">
+    <button hlmBtn variant="outline" type="button" (click)="cancel()">Abbrechen</button>
+    <button hlmBtn type="submit" [disabled]="saving()" [attr.aria-busy]="saving()">Speichern</button>
+  </div>
+</form>

@@ -1,0 +1,20 @@
+/*
+ * Type-check gate for what neither `ng build` nor `ng test` compiles: the Playwright specs and helpers
+ * (tests/e2e/**), the tooling and contract tests (tests/unit/**, run by plain Vitest), the Playwright and
+ * Vitest configs and the typed surfaces of the plain-JS scripts (scripts/*.d.mts). Playwright and Vitest
+ * transpile without type-checking, so without this gate a wrong helper arity or a stale API shape in a spec
+ * would land unnoticed. `pnpm run typecheck:tests` (part of `check`) runs tsc over it.
+ */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["node", "vitest/globals"],
+    // Specs and the Playwright config read `process.env.X` throughout, the same as the Nuxt
+    // template's suites; bracket access on every env var is churn that catches nothing.
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["tests/e2e/**/*.ts", "tests/unit/**/*.ts", "playwright.config.ts", "vitest.config.ts", "scripts/**/*.d.mts"]
+}

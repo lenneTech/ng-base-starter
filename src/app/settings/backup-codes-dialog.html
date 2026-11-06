@@ -1,0 +1,32 @@
+<div class="space-y-4">
+  <h2 hlmDialogTitle class="text-lg font-semibold">Backup-Codes</h2>
+  <div class="flex items-center gap-3">
+    <ng-icon name="lucideKeyRound" size="1.5rem" class="text-warning" aria-hidden="true" />
+    <p class="text-sm text-muted-foreground">Bewahre diese Codes sicher auf. Jeder Code kann nur einmal verwendet werden.</p>
+  </div>
+
+  @if (backupCodes().length > 0) {
+    <ul class="grid grid-cols-2 gap-2 rounded-lg bg-muted/50 p-4 font-mono text-sm" aria-label="Backup-Codes">
+      @for (code of backupCodes(); track code) {
+        <li>{{ code }}</li>
+      }
+    </ul>
+  } @else {
+    <form [formRoot]="passwordForm" class="space-y-4">
+      <lt-form-field for="backup-codes-password" label="Passwort" [error]="fieldError(passwordForm.password)">
+        <lt-password-input id="backup-codes-password" autocomplete="current-password" placeholder="Dein Passwort" [formField]="passwordForm.password" />
+      </lt-form-field>
+      <button hlmBtn type="submit" class="w-full" [disabled]="loading()">Neue Backup-Codes generieren</button>
+    </form>
+  }
+
+  <div class="flex justify-end gap-3">
+    @if (backupCodes().length > 0) {
+      <button hlmBtn variant="outline" type="button" (click)="copy()">
+        <ng-icon name="lucideCopy" aria-hidden="true" />
+        Codes kopieren
+      </button>
+    }
+    <button hlmBtn variant="outline" type="button" (click)="close()">Schließen</button>
+  </div>
+</div>

@@ -1,0 +1,45 @@
+<div class="mx-auto max-w-4xl space-y-6 px-4 py-8">
+  <lt-page-title title="KI-Audit-Log" description="Protokollierte Prompt-Läufe (nur bei aktiviertem Audit).">
+    <button ltPageTitleActions hlmBtn variant="outline" type="button" [disabled]="interactions.isLoading()" [attr.aria-busy]="interactions.isLoading()" (click)="reload()">
+      <ng-icon name="lucideRefreshCw" [class]="interactions.isLoading() ? 'motion-safe:animate-spin' : ''" aria-hidden="true" />
+      Aktualisieren
+    </button>
+  </lt-page-title>
+
+  <section hlmCard aria-label="Protokollierte Prompt-Läufe">
+    <div hlmCardContent>
+      @if (interactions.isLoading()) {
+        <div class="py-8 text-center text-muted-foreground" role="status">
+          <ng-icon name="lucideLoaderCircle" size="1.5rem" class="motion-safe:animate-spin" aria-hidden="true" />
+          <span class="sr-only">Einträge werden geladen</span>
+        </div>
+      } @else if (loadError()) {
+        <lt-notice variant="error" title="Das Audit-Log konnte nicht geladen werden">{{ loadError() }}</lt-notice>
+      } @else if (!list().length) {
+        <p class="py-8 text-center text-muted-foreground">Keine Einträge.</p>
+      } @else {
+        <ul class="divide-y">
+          @for (item of list(); track item.id) {
+            <li class="space-y-1 py-3">
+              <div class="flex items-center justify-between gap-3">
+                <p class="truncate font-medium">{{ item.prompt || '—' }}</p>
+                @if (item.createdAt) {
+                  <time class="shrink-0 text-xs text-muted-foreground" [attr.datetime]="item.createdAt">{{ item.createdAt | date: 'd.M.yyyy, HH:mm:ss' }}</time>
+                }
+              </div>
+              <p class="truncate text-sm text-muted-foreground">{{ item.responseText }}</p>
+              <p class="text-xs text-muted-foreground">
+                @for (fact of interactionMeta(item); track $index) {
+                  @if (!$first) {
+                    <span aria-hidden="true"> · </span>
+                  }
+                  <span>{{ fact }}</span>
+                }
+              </p>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+</div>

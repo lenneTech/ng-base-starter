@@ -1,4 +1,4 @@
 {
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=827846
-  "recommendations": ["angular.ng-template"]
+  // Angular Language Service for templates, oxc for oxlint/oxfmt (the project's linter and formatter).
+  "recommendations": ["angular.ng-template", "oxc.oxc-vscode"]
 }

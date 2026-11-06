@@ -1,0 +1,187 @@
+<div class="mx-auto max-w-4xl space-y-6 px-4 py-8">
+  <div class="space-y-1">
+    <lt-page-title title="KI-Lern-Hinweise">
+      <button ltPageTitleActions hlmBtn variant="outline" type="button" aria-controls="manual-hint" [attr.aria-expanded]="showCreate()" (click)="toggleCreate()">
+        <ng-icon name="lucidePlus" aria-hidden="true" />
+        Manuell
+      </button>
+    </lt-page-title>
+    <p class="text-sm text-muted-foreground">
+      Aus wiederkehrenden Fehlern automatisch abgeleitete Hinweise. Nur <strong>freigegebene</strong> und aktive Hinweise fließen in den Prompt ein. Hinweise ergänzen nur Anleitung
+      — sie können das Rechtemanagement nie aufweichen (das wird serverseitig unabhängig erzwungen).
+    </p>
+  </div>
+
+  <div id="manual-hint">
+    @if (showCreate()) {
+      <form hlmCard [formRoot]="hintForm" aria-labelledby="manual-hint-title">
+        <div hlmCardHeader>
+          <h2 id="manual-hint-title" hlmCardTitle>Manuellen Hinweis anlegen</h2>
+        </div>
+        <div hlmCardContent class="grid grid-cols-1 gap-3">
+          <lt-form-field for="hint-scope" label="Bereich (scope)" hint="z. B. ein Tool-Name; leer = global">
+            <input hlmInput id="hint-scope" autocomplete="off" placeholder="global" [formField]="hintForm.scope" />
+          </lt-form-field>
+          <lt-form-field for="hint-content" label="Hinweistext">
+            <textarea hlmTextarea id="hint-content" rows="3" placeholder="Anleitung, die dem Modell hinzugefügt wird" [formField]="hintForm.content"></textarea>
+          </lt-form-field>
+        </div>
+        <div hlmCardFooter>
+          <button hlmBtn type="submit" [disabled]="saving()" [attr.aria-busy]="saving()">
+            <ng-icon [name]="saving() ? 'lucideLoaderCircle' : 'lucidePlus'" [class]="saving() ? 'motion-safe:animate-spin' : ''" aria-hidden="true" />
+            Anlegen &amp; freigeben
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+
+  <section hlmCard aria-labelledby="suggested-hints-title">
+    <div hlmCardHeader>
+      <h2 id="suggested-hints-title" hlmCardTitle class="flex items-center gap-2">
+        Zu prüfen
+        @if (suggested().length) {
+          <span hlmBadge class="bg-warning text-warning-foreground">{{ suggested().length }}</span>
+        }
+      </h2>
+    </div>
+    <div hlmCardContent>
+      @if (hints.isLoading()) {
+        <div class="py-8 text-center text-muted-foreground" role="status">
+          <ng-icon name="lucideLoaderCircle" size="1.5rem" class="motion-safe:animate-spin" aria-hidden="true" />
+          <span class="sr-only">Hinweise werden geladen</span>
+        </div>
+      } @else if (loadError()) {
+        <lt-notice variant="error" title="Hinweise konnten nicht geladen werden">{{ loadError() }}</lt-notice>
+      } @else if (!suggested().length) {
+        <p class="py-8 text-center text-muted-foreground">Keine offenen Vorschläge.</p>
+      } @else {
+        <ul class="divide-y">
+          @for (hint of suggested(); track hint.id) {
+            <li class="py-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <span hlmBadge class="bg-warning/10 text-warning">{{ hintStatus(hint) }}</span>
+                <span hlmBadge variant="outline">{{ hint.trigger || 'manual' }}</span>
+                @if (hint.scope) {
+                  <span hlmBadge class="bg-info/10 text-info">{{ hint.scope }}</span>
+                }
+                <span class="text-xs text-muted-foreground">{{ hint.occurrences ?? 1 }}× beobachtet</span>
+              </div>
+              <p class="mt-1 text-sm" [id]="'hint-content-' + hint.id">{{ hint.content }}</p>
+              <div class="mt-2 flex gap-2">
+                <button
+                  hlmBtn
+                  size="sm"
+                  type="button"
+                  class="bg-success text-success-foreground hover:bg-success/90"
+                  [attr.aria-describedby]="'hint-content-' + hint.id"
+                  (click)="setStatus(hint, 'approved')"
+                >
+                  <ng-icon name="lucideCheck" aria-hidden="true" />
+                  Freigeben
+                </button>
+                <button
+                  hlmBtn
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  class="text-destructive"
+                  [attr.aria-describedby]="'hint-content-' + hint.id"
+                  (click)="setStatus(hint, 'rejected')"
+                >
+                  <ng-icon name="lucideX" aria-hidden="true" />
+                  Ablehnen
+                </button>
+                <button hlmBtn variant="ghost" size="icon-sm" type="button" aria-label="Hinweis löschen" [attr.aria-describedby]="'hint-content-' + hint.id" (click)="remove(hint)">
+                  <ng-icon name="lucideTrash" aria-hidden="true" />
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+
+  <section hlmCard aria-labelledby="reviewed-hints-title">
+    <div hlmCardHeader>
+      <h2 id="reviewed-hints-title" hlmCardTitle>Geprüfte Hinweise</h2>
+    </div>
+    <div hlmCardContent>
+      @if (hints.isLoading()) {
+        <div class="py-8 text-center text-muted-foreground" role="status">
+          <ng-icon name="lucideLoaderCircle" size="1.5rem" class="motion-safe:animate-spin" aria-hidden="true" />
+          <span class="sr-only">Hinweise werden geladen</span>
+        </div>
+      } @else if (loadError()) {
+        <lt-notice variant="error" title="Hinweise konnten nicht geladen werden">{{ loadError() }}</lt-notice>
+      } @else if (!reviewed().length) {
+        <p class="py-8 text-center text-muted-foreground">Noch keine geprüften Hinweise.</p>
+      } @else {
+        <ul class="divide-y">
+          @for (hint of reviewed(); track hint.id) {
+            <li class="flex items-start justify-between gap-3 py-3">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  @switch (hintStatus(hint)) {
+                    @case ('approved') {
+                      <span hlmBadge class="bg-success/10 text-success">{{ hint.status }}</span>
+                    }
+                    @case ('rejected') {
+                      <span hlmBadge variant="destructive">{{ hint.status }}</span>
+                    }
+                    @default {
+                      <span hlmBadge variant="outline">{{ hint.status }}</span>
+                    }
+                  }
+                  <span hlmBadge variant="outline">{{ hint.trigger || 'manual' }}</span>
+                  @if (hint.scope) {
+                    <span hlmBadge class="bg-info/10 text-info">{{ hint.scope }}</span>
+                  }
+                  @if (!isHintEnabled(hint)) {
+                    <span hlmBadge class="bg-warning/10 text-warning">inaktiv</span>
+                  }
+                </div>
+                <p class="mt-1 text-sm" [id]="'hint-content-' + hint.id">{{ hint.content }}</p>
+              </div>
+              <div class="flex shrink-0 items-center gap-1">
+                <hlm-switch aria-label="Hinweis aktiv" [aria-describedby]="'hint-content-' + hint.id" [checked]="isHintEnabled(hint)" (checkedChange)="toggleEnabled(hint)" />
+                @if (hint.status !== 'approved') {
+                  <button
+                    hlmBtn
+                    variant="ghost"
+                    size="icon-sm"
+                    type="button"
+                    class="text-success"
+                    aria-label="Freigeben"
+                    [attr.aria-describedby]="'hint-content-' + hint.id"
+                    (click)="setStatus(hint, 'approved')"
+                  >
+                    <ng-icon name="lucideCheck" aria-hidden="true" />
+                  </button>
+                }
+                @if (hint.status !== 'rejected') {
+                  <button
+                    hlmBtn
+                    variant="ghost"
+                    size="icon-sm"
+                    type="button"
+                    class="text-destructive"
+                    aria-label="Ablehnen"
+                    [attr.aria-describedby]="'hint-content-' + hint.id"
+                    (click)="setStatus(hint, 'rejected')"
+                  >
+                    <ng-icon name="lucideX" aria-hidden="true" />
+                  </button>
+                }
+                <button hlmBtn variant="ghost" size="icon-sm" type="button" aria-label="Hinweis löschen" [attr.aria-describedby]="'hint-content-' + hint.id" (click)="remove(hint)">
+                  <ng-icon name="lucideTrash" aria-hidden="true" />
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+</div>

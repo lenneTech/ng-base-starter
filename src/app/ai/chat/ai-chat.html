@@ -1,0 +1,63 @@
+<!-- Toolbar -->
+<div class="flex flex-wrap items-center justify-between gap-2">
+  @if (showConnectionPicker()) {
+    <app-ai-connection-picker />
+  }
+  <div class="flex items-center gap-3">
+    <app-ai-token-bar [budget]="chat.budget()" />
+    <app-ai-context-window [contextWindow]="chat.contextWindow()" />
+    <app-ai-usage-badge [budget]="chat.budget()" />
+  </div>
+  @if (chat.messages().length) {
+    <button hlmBtn variant="ghost" size="sm" type="button" title="Konversation leeren" (click)="clear()">
+      <ng-icon name="lucideEraser" aria-hidden="true" />
+      Konversation leeren
+    </button>
+  }
+</div>
+
+<!-- Messages -->
+<div #list class="min-h-0 flex-1 space-y-3 overflow-y-auto rounded-lg border p-4" role="log" aria-label="Konversation" tabindex="0" [attr.aria-busy]="chat.streaming() || null">
+  @for (message of chat.messages(); track $index) {
+    <app-ai-message [message]="message" (confirmed)="confirm()" />
+  } @empty {
+    <div class="flex h-full min-h-40 items-center justify-center text-center text-muted-foreground">
+      <div>
+        <ng-icon name="lucideSparkles" size="2rem" class="mx-auto mb-2" aria-hidden="true" />
+        <p>Stelle dem KI-Assistenten eine Frage.</p>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Error -->
+@if (errorText(); as error) {
+  <lt-notice variant="error">{{ error }}</lt-notice>
+}
+
+<!-- Input -->
+<form class="flex items-end gap-2" (submit)="onSubmit($event)">
+  <app-ai-prompt-picker (selected)="insertPrompt($event)" />
+  <label for="ai-chat-input" class="sr-only">Nachricht</label>
+  <textarea
+    #textarea
+    hlmTextarea
+    id="ai-chat-input"
+    rows="1"
+    class="max-h-48 min-h-9 flex-1 resize-none"
+    placeholder="Nachricht eingeben …"
+    [value]="draft()"
+    [disabled]="chat.streaming()"
+    (input)="onDraftInput($event)"
+    (keydown.enter)="onEnter($event)"
+  ></textarea>
+  @if (chat.streaming()) {
+    <button hlmBtn variant="outline" size="icon" type="button" aria-label="Stop" (click)="stop()">
+      <ng-icon name="lucideSquare" aria-hidden="true" />
+    </button>
+  } @else {
+    <button hlmBtn size="icon" type="submit" aria-label="Senden" [disabled]="!canSend()">
+      <ng-icon name="lucideSend" aria-hidden="true" />
+    </button>
+  }
+</form>

@@ -1,0 +1,214 @@
+<div class="mx-auto max-w-7xl space-y-6 px-4 py-8">
+  <div class="space-y-1">
+    <lt-page-title title="KI-Slots" />
+    <p class="text-sm text-muted-foreground">
+      Bausteine des System-Prompts. Das Framework liefert für jeden Slot sinnvolle Standards — ein Tenant-Eintrag hier
+      <strong>überschreibt</strong> ihn nur für deinen Tenant. Eigene Slots ergänzen den Prompt um zusätzliche Anweisungen. Beim Editieren rechts die verfügbaren Platzhalter
+      beachten.
+    </p>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <div class="min-w-0 space-y-6">
+      <!-- Edit form -->
+      <form hlmCard [formRoot]="slotForm" aria-labelledby="slot-form-title">
+        <div hlmCardHeader>
+          <h2 #formHeading id="slot-form-title" hlmCardTitle tabindex="-1" class="break-all focus:outline-none">{{ formTitle() }}</h2>
+        </div>
+        <div hlmCardContent class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <lt-form-field for="slot-key" label="Slot-Key" hint="z. B. base, permissions, anti_hallucination, oder ein eigener Name">
+            <input hlmInput id="slot-key" autocomplete="off" placeholder="base" [formField]="slotForm.key" />
+          </lt-form-field>
+          <lt-form-field for="slot-capability" label="Modus (capability)">
+            <lt-select id="slot-capability" [options]="capabilityOptions" [formField]="slotForm.capability" />
+          </lt-form-field>
+          <lt-form-field for="slot-locale" label="Sprache (locale)" hint="leer = alle Sprachen">
+            <input hlmInput id="slot-locale" autocomplete="off" placeholder="de" [formField]="slotForm.locale" />
+          </lt-form-field>
+          <lt-form-field for="slot-order" label="Reihenfolge">
+            <input hlmInput id="slot-order" type="number" inputmode="numeric" placeholder="100" [formField]="slotForm.order" />
+          </lt-form-field>
+          <lt-form-field for="slot-description" label="Beschreibung" class="sm:col-span-2">
+            <input hlmInput id="slot-description" autocomplete="off" placeholder="Optional — wofür ist dieser Slot?" [formField]="slotForm.description" />
+          </lt-form-field>
+          <lt-form-field for="slot-content" label="Inhalt" hint="Platzhalter rechts in der Sidebar einsehen." class="sm:col-span-2">
+            <textarea hlmTextarea id="slot-content" rows="6" placeholder="Du bist …" [formField]="slotForm.content"></textarea>
+          </lt-form-field>
+          <div class="flex flex-col gap-2">
+            <label for="slot-enabled" class="text-sm font-medium">Aktiv</label>
+            <hlm-switch inputId="slot-enabled" [formField]="slotForm.enabled" />
+          </div>
+        </div>
+        <div hlmCardFooter class="gap-2">
+          <button hlmBtn type="submit" [disabled]="saving()" [attr.aria-busy]="saving()">
+            @if (saving()) {
+              <ng-icon name="lucideLoaderCircle" class="motion-safe:animate-spin" aria-hidden="true" />
+            } @else {
+              <ng-icon [name]="editing() ? 'lucideSave' : 'lucidePlus'" aria-hidden="true" />
+            }
+            {{ editing() ? 'Speichern' : 'Anlegen' }}
+          </button>
+          @if (editing()) {
+            <button hlmBtn variant="ghost" type="button" (click)="startNew()">
+              <ng-icon name="lucideX" aria-hidden="true" />
+              Abbrechen
+            </button>
+          }
+        </div>
+      </form>
+
+      <!-- System defaults + overrides -->
+      <section hlmCard aria-labelledby="system-slots-title">
+        <div hlmCardHeader>
+          <h2 id="system-slots-title" hlmCardTitle>System-Slots</h2>
+        </div>
+        <div hlmCardContent>
+          @if (slots.isLoading()) {
+            <div class="py-8 text-center text-muted-foreground" role="status">
+              <ng-icon name="lucideLoaderCircle" size="1.5rem" class="motion-safe:animate-spin" aria-hidden="true" />
+              <span class="sr-only">System-Slots werden geladen</span>
+            </div>
+          } @else if (loadError()) {
+            <lt-notice variant="error" title="Slots konnten nicht geladen werden">{{ loadError() }}</lt-notice>
+          } @else {
+            <ul class="divide-y">
+              @for (s of systemSlots(); track $index) {
+                <li class="flex items-start justify-between gap-3 py-3">
+                  <div class="min-w-0 flex-1">
+                    <p class="flex flex-wrap items-center gap-2 font-medium">
+                      <span class="font-mono text-sm break-all">{{ s.key }}</span>
+                      @if (s.isOverride) {
+                        <span hlmBadge class="bg-warning/10 text-warning">Tenant-Override</span>
+                      } @else {
+                        <span hlmBadge class="bg-success/10 text-success">System-Standard</span>
+                      }
+                      <span hlmBadge variant="outline">{{ s.capability || 'all' }}</span>
+                      @if (s.locale) {
+                        <span hlmBadge class="bg-info/10 text-info">{{ s.locale }}</span>
+                      }
+                      <span hlmBadge class="bg-primary/10 text-primary">#{{ s.order }}</span>
+                      @if (!s.enabled) {
+                        <span hlmBadge variant="destructive">inaktiv</span>
+                      }
+                    </p>
+                    @if (s.description) {
+                      <p class="text-xs text-muted-foreground">{{ s.description }}</p>
+                    }
+                    <p class="mt-1 line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">{{ s.content }}</p>
+                  </div>
+                  <div class="flex shrink-0 items-center gap-1">
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon-sm"
+                      type="button"
+                      [hlmTooltip]="s.isSystem ? 'Override anlegen' : 'Override bearbeiten'"
+                      [attr.aria-label]="(s.isSystem ? 'Override anlegen: ' : 'Override bearbeiten: ') + s.key"
+                      (click)="startEdit(s)"
+                    >
+                      <ng-icon name="lucidePencil" aria-hidden="true" />
+                    </button>
+                    @if (s.isOverride) {
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon-sm"
+                        type="button"
+                        class="text-warning"
+                        hlmTooltip="Zurücksetzen auf System-Standard"
+                        [attr.aria-label]="'Zurücksetzen auf System-Standard: ' + s.key"
+                        (click)="reset(s)"
+                      >
+                        <ng-icon name="lucideRotateCcw" aria-hidden="true" />
+                      </button>
+                    }
+                    @if (s.isSystem) {
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon-sm"
+                        type="button"
+                        class="text-destructive"
+                        hlmTooltip="Für diesen Tenant deaktivieren"
+                        [attr.aria-label]="'Für diesen Tenant deaktivieren: ' + s.key"
+                        (click)="softDeleteSystem(s)"
+                      >
+                        <ng-icon name="lucideEyeOff" aria-hidden="true" />
+                      </button>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+
+      <!-- Custom tenant slots -->
+      <section hlmCard aria-labelledby="custom-slots-title">
+        <div hlmCardHeader>
+          <h2 id="custom-slots-title" hlmCardTitle>Eigene Slots (Tenant)</h2>
+        </div>
+        <div hlmCardContent>
+          @if (slots.isLoading()) {
+            <div class="py-8 text-center text-muted-foreground" role="status">
+              <ng-icon name="lucideLoaderCircle" size="1.5rem" class="motion-safe:animate-spin" aria-hidden="true" />
+              <span class="sr-only">Eigene Slots werden geladen</span>
+            </div>
+          } @else if (loadError()) {
+            <lt-notice variant="error" title="Slots konnten nicht geladen werden">{{ loadError() }}</lt-notice>
+          } @else if (!customSlots().length) {
+            <p class="py-4 text-center text-sm text-muted-foreground">Keine eigenen Slots angelegt.</p>
+          } @else {
+            <ul class="divide-y">
+              @for (s of customSlots(); track s.id ?? $index) {
+                <li class="flex items-start justify-between gap-3 py-3">
+                  <div class="min-w-0 flex-1">
+                    <p class="flex flex-wrap items-center gap-2 font-medium">
+                      <span class="font-mono text-sm break-all">{{ s.key }}</span>
+                      <span hlmBadge class="bg-primary/10 text-primary">Eigener Slot</span>
+                      <span hlmBadge variant="outline">{{ s.capability || 'all' }}</span>
+                      @if (s.locale) {
+                        <span hlmBadge class="bg-info/10 text-info">{{ s.locale }}</span>
+                      }
+                      <span hlmBadge class="bg-primary/10 text-primary">#{{ s.order }}</span>
+                      @if (!s.enabled) {
+                        <span hlmBadge class="bg-warning/10 text-warning">inaktiv</span>
+                      }
+                    </p>
+                    @if (s.description) {
+                      <p class="text-xs text-muted-foreground">{{ s.description }}</p>
+                    }
+                    <p class="mt-1 line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">{{ s.content }}</p>
+                  </div>
+                  <div class="flex shrink-0 items-center gap-1">
+                    <button hlmBtn variant="ghost" size="icon-sm" type="button" [attr.aria-label]="'Eigenen Slot bearbeiten: ' + s.key" (click)="startEdit(s)">
+                      <ng-icon name="lucidePencil" aria-hidden="true" />
+                    </button>
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon-sm"
+                      type="button"
+                      class="text-destructive"
+                      hlmTooltip="Endgültig löschen (nicht wiederherstellbar)"
+                      [attr.aria-label]="'Endgültig löschen (nicht wiederherstellbar): ' + s.key"
+                      (click)="remove(s)"
+                    >
+                      <ng-icon name="lucideTrash" aria-hidden="true" />
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+    </div>
+
+    <!-- Placeholder helper sidebar -->
+    <aside aria-label="Platzhalter" class="space-y-4">
+      <app-placeholder-hint />
+    </aside>
+  </div>
+</div>

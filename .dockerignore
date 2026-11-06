@@ -1,0 +1,68 @@
+# Docker reads this file from the build CONTEXT ROOT, and its patterns are resolved relative to
+# that root, not to this file's directory. In an lt-monorepo the context is the repo root, so
+# `projects/app/.dockerignore` is never consulted at all. Every pattern that must also hit
+# `projects/*` therefore uses a `**/` glob, so the same list works for a standalone build
+# (context = this directory) and for a copy placed at the monorepo root. The Dockerfile
+# additionally removes the build-read artefacts, so a missing root .dockerignore can never bake
+# a developer's local config into an image.
+
+# Dependencies
+**/node_modules
+**/.pnpm-store
+**/.npm
+
+# Build output and the Angular CLI cache. The globstar is load-bearing: docker anchors a
+# slash-free pattern at the CONTEXT ROOT, so a bare `.output` would exclude nothing once this
+# template sits at `projects/app` in a monorepo.
+**/.angular
+**/.output
+**/.output-check
+**/.output-test
+# Catch-all: `NG_OUTPUT_DIR` makes `.output-<x>` trivial to spawn.
+**/.output-*
+**/dist
+
+# IDE / tooling
+**/.idea
+**/.vscode
+**/.claude
+**/*.swp
+**/*.swo
+
+# Logs (`**/*.log.*` for rotated logs such as `.lt-dev/app.log.1`)
+**/*.log
+**/*.log.*
+**/npm-debug.log*
+
+# `lt dev`'s runtime directory: detached server logs and scratch state.
+**/.lt-dev
+
+# Testing. A Playwright trace records the full request log of the failing test, session cookie
+# included. The specs are not needed by the build either.
+**/coverage
+**/test-results
+**/playwright-report
+**/blob-report
+**/.vitest
+**/tests
+
+# Environment: a developer's local config must never reach an image. `.env*` covers the whole
+# family, `.env.example` included (no build step reads it).
+**/.env*
+
+# Git
+**/.git
+**/.gitignore
+
+# Docker
+**/Dockerfile*
+**/docker-compose*
+**/.dockerignore
+
+# Documentation
+**/*.md
+!README.md
+
+# Misc
+**/.DS_Store
+**/*.tgz

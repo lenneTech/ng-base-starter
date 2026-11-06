@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // oxlint lints every .ts/.mjs file. It cannot parse Angular templates, so the template rules
+  // (control flow, a11y, signals in templates) run through angular-eslint (`eslint.config.js`),
+  // which is scoped to `src/**/*.html` and nothing else.
+  // `unicorn` joins in the first override, for the project's own code only: a vendored ng-base core
+  // (src/core/) is linted with the plugins ng-base lints itself with, never more.
+  "plugins": ["typescript", "import"],
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "rules": {
+    "eqeqeq": "warn",
+    "no-console": ["warn", { "allow": ["warn", "error", "info", "debug", "trace", "time", "timeEnd", "group", "groupEnd"] }],
+    "no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
+    // Type-aware (`oxlint --type-aware`, needs the oxlint-tsgolint devDependency), as in nest-server and the
+    // Nuxt template. An un-awaited promise is the one defect no other gate sees: its rejection goes unhandled.
+    // Deliberate fire-and-forget gets `void` (e.g. `void this.router.navigateByUrl(...)`).
+    "typescript/no-floating-promises": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/*"],
+      "excludeFiles": ["src/core/**"],
+      "plugins": ["unicorn"]
+    },
+    {
+      "files": ["scripts/**", "src/server.ts", "tests/unit/fixtures/**"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      // Vendor mode: src/core/ is @lenne.tech/ng-base copied in by `lt fullstack init` (or a convert-mode
+      // run) and is linted by its own repository's rules. The project applies a subset of them, never more.
+      "files": ["src/core/**"],
+      "rules": {
+        "no-console": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "import/default": "off",
+        "import/namespace": "off",
+        "typescript/no-floating-promises": "off",
+        "typescript/no-base-to-string": "off",
+        "typescript/restrict-template-expressions": "off",
+        "typescript/unbound-method": "off"
+      }
+    }
+  ]
+}

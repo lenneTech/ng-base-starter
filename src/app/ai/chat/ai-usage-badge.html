@@ -1,0 +1,7 @@
+@if (label()) {
+  <!-- Focusable, so keyboard users reach the tooltip too. -->
+  <span hlmBadge variant="outline" tabindex="0" [hlmTooltip]="tooltip()">
+    <ng-icon name="lucideCoins" aria-hidden="true" />
+    {{ label() }}
+  </span>
+}

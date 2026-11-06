@@ -1,0 +1,77 @@
+<div class="mx-auto max-w-4xl space-y-6 px-4 py-8">
+  <lt-page-title title="KI-Verbindungs-Präferenzen" description="Standard-Verbindung pro Tenant/Nutzer; „erzwungen“ überschreibt die Nutzerwahl." />
+
+  <form hlmCard [formRoot]="preferenceForm" aria-labelledby="new-preference-title">
+    <div hlmCardHeader>
+      <h2 id="new-preference-title" hlmCardTitle>Neue Präferenz</h2>
+    </div>
+    <div hlmCardContent class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <lt-form-field for="preference-scope" label="Bereich">
+        <lt-select id="preference-scope" [options]="scopeOptions" [formField]="preferenceForm.scope" />
+      </lt-form-field>
+      <lt-form-field for="preference-connection" label="Verbindung">
+        <lt-select id="preference-connection" placeholder="Verbindung wählen" [options]="connectionOptions()" [formField]="preferenceForm.connectionId" />
+      </lt-form-field>
+      <lt-form-field for="preference-ref-id" label="Referenz-ID (Tenant/Nutzer)" class="sm:col-span-2">
+        <input hlmInput id="preference-ref-id" autocomplete="off" placeholder="ObjectId" [formField]="preferenceForm.refId" />
+      </lt-form-field>
+      @if (!preferenceForm.enforced().hidden()) {
+        <div class="flex items-center gap-2">
+          <hlm-checkbox inputId="preference-enforced" [formField]="preferenceForm.enforced" />
+          <label for="preference-enforced" class="text-sm">Erzwingen (Nutzer können nicht abweichen)</label>
+        </div>
+      }
+    </div>
+    <div hlmCardFooter>
+      <button hlmBtn type="submit" [disabled]="saving()" [attr.aria-busy]="saving()">
+        <ng-icon [name]="saving() ? 'lucideLoaderCircle' : 'lucidePlus'" [class]="saving() ? 'motion-safe:animate-spin' : ''" aria-hidden="true" />
+        Präferenz speichern
+      </button>
+    </div>
+  </form>
+
+  <section hlmCard aria-labelledby="preferences-title">
+    <div hlmCardHeader>
+      <h2 id="preferences-title" hlmCardTitle>Bestehende Präferenzen</h2>
+    </div>
+    <div hlmCardContent>
+      @if (preferences.isLoading()) {
+        <div class="py-8 text-center text-muted-foreground" role="status">
+          <ng-icon name="lucideLoaderCircle" size="1.5rem" class="motion-safe:animate-spin" aria-hidden="true" />
+          <span class="sr-only">Präferenzen werden geladen</span>
+        </div>
+      } @else if (loadError()) {
+        <lt-notice variant="error" title="Präferenzen konnten nicht geladen werden">{{ loadError() }}</lt-notice>
+      } @else if (!list().length) {
+        <p class="py-8 text-center text-muted-foreground">Keine Präferenzen konfiguriert.</p>
+      } @else {
+        <ul class="divide-y">
+          @for (pref of list(); track pref.id ?? $index) {
+            <li class="flex items-center justify-between gap-3 py-3">
+              <div class="min-w-0">
+                <p class="flex flex-wrap items-center gap-2 font-medium">
+                  <span class="break-all">{{ scopeLabel(pref.scope) }} · {{ pref.refId }}</span>
+                  @if (pref.enforced) {
+                    <span hlmBadge class="bg-warning/10 text-warning">erzwungen</span>
+                  }
+                </p>
+                <p class="text-xs text-muted-foreground">→ {{ connectionName(pref.connectionId) }}</p>
+              </div>
+              <button
+                hlmBtn
+                variant="ghost"
+                size="icon-sm"
+                type="button"
+                class="shrink-0 text-destructive"
+                [attr.aria-label]="'Präferenz löschen: ' + scopeLabel(pref.scope) + ' ' + pref.refId"
+                (click)="remove(pref)"
+              >
+                <ng-icon name="lucideTrash" aria-hidden="true" />
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+</div>

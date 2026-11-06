@@ -1,0 +1,91 @@
+<div class="mx-auto max-w-4xl space-y-6 px-4 py-8">
+  <lt-page-title title="KI-Verbindungen" description="Verwalte die LLM-Verbindungen. Fähigkeiten werden bei leerer Angabe automatisch erkannt.">
+    <button ltPageTitleActions hlmBtn type="button" (click)="openDialog()">
+      <ng-icon name="lucidePlus" aria-hidden="true" />
+      Verbindung hinzufügen
+    </button>
+  </lt-page-title>
+
+  <section hlmCard aria-label="Verbindungen">
+    <div hlmCardContent>
+      @if (connections.isLoading()) {
+        <div class="py-8 text-center text-muted-foreground" role="status">
+          <ng-icon name="lucideLoaderCircle" size="1.5rem" class="motion-safe:animate-spin" aria-hidden="true" />
+          <span class="sr-only">Verbindungen werden geladen</span>
+        </div>
+      } @else if (loadError()) {
+        <lt-notice variant="error" title="Verbindungen konnten nicht geladen werden">{{ loadError() }}</lt-notice>
+      } @else if (!list().length) {
+        <p class="py-8 text-center text-muted-foreground">Noch keine Verbindungen.</p>
+      } @else {
+        <ul class="divide-y">
+          @for (conn of list(); track conn.id) {
+            <li class="flex items-center justify-between gap-3 py-3">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="truncate font-medium">{{ conn.name }}</p>
+                  @if (conn.isDefault) {
+                    <span hlmBadge class="bg-primary/10 text-primary">Standard</span>
+                  }
+                  @if (conn.enabled === false) {
+                    <span hlmBadge variant="outline">Deaktiviert</span>
+                  }
+                  @if (conn.hasApiKey) {
+                    <span hlmBadge class="bg-success/10 text-success">
+                      <ng-icon name="lucideKey" aria-hidden="true" />
+                      Key
+                    </span>
+                  }
+                </div>
+                <p class="truncate text-xs text-muted-foreground">{{ conn.model }} · {{ conn.baseUrl }}</p>
+                <p class="text-xs text-muted-foreground">JSON: {{ capabilityLabel(conn.supportsJsonResponse) }} · Tools: {{ capabilityLabel(conn.supportsNativeTools) }}</p>
+              </div>
+              <div class="flex shrink-0 items-center gap-1">
+                <button
+                  hlmBtn
+                  variant="ghost"
+                  size="icon-sm"
+                  type="button"
+                  hlmTooltip="Fähigkeiten erkennen"
+                  [attr.aria-label]="'Fähigkeiten erkennen: ' + (conn.name || conn.id)"
+                  [attr.aria-busy]="busyId() === conn.id"
+                  [disabled]="busyId() === conn.id"
+                  (click)="detect(conn)"
+                >
+                  @if (busyId() === conn.id) {
+                    <ng-icon name="lucideLoaderCircle" class="motion-safe:animate-spin" aria-hidden="true" />
+                  } @else {
+                    <ng-icon name="lucideRadar" aria-hidden="true" />
+                  }
+                </button>
+                <button
+                  hlmBtn
+                  variant="ghost"
+                  size="icon-sm"
+                  type="button"
+                  [attr.aria-label]="'Verbindung bearbeiten: ' + (conn.name || conn.id)"
+                  [disabled]="busyId() === conn.id"
+                  (click)="openDialog(conn)"
+                >
+                  <ng-icon name="lucidePencil" aria-hidden="true" />
+                </button>
+                <button
+                  hlmBtn
+                  variant="ghost"
+                  size="icon-sm"
+                  type="button"
+                  class="text-destructive"
+                  [attr.aria-label]="'Verbindung löschen: ' + (conn.name || conn.id)"
+                  [disabled]="busyId() === conn.id"
+                  (click)="remove(conn)"
+                >
+                  <ng-icon name="lucideTrash" aria-hidden="true" />
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+</div>

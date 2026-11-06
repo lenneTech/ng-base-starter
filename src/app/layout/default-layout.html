@@ -1,0 +1,39 @@
+<div class="flex min-h-screen flex-col">
+  <lt-header [title]="siteName" [items]="headerItems()">
+    <ng-icon ltHeaderLogo name="lucideCode" class="text-primary" aria-hidden="true" />
+    <div ltHeaderActions class="flex items-center gap-1">
+      @if (auth.isAuthenticated()) {
+        <span class="hidden text-sm text-muted-foreground sm:inline">{{ auth.user()?.email }}</span>
+        <button hlmBtn variant="ghost" size="icon" type="button" aria-label="Logout" hlmTooltip="Logout" (click)="signOut()">
+          <ng-icon name="lucideLogOut" aria-hidden="true" />
+        </button>
+      } @else {
+        <a hlmBtn variant="secondary" routerLink="/auth/login">
+          <ng-icon name="lucideLogIn" aria-hidden="true" />
+          Login
+        </a>
+      }
+      <lt-color-mode-button />
+      <a hlmBtn variant="ghost" size="icon" [href]="githubUrl" target="_blank" rel="noopener" aria-label="GitHub" hlmTooltip="Auf GitHub öffnen">
+        <ng-icon name="simpleGithub" aria-hidden="true" />
+      </a>
+    </div>
+  </lt-header>
+
+  <main id="main-content" class="flex-1">
+    <router-outlet />
+  </main>
+
+  <hlm-separator />
+
+  <lt-footer>
+    <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
+      <p class="text-sm text-muted-foreground">Copyright © {{ year }}</p>
+      <div class="flex items-center gap-1">
+        <a hlmBtn variant="ghost" size="icon" href="#" aria-label="Discord"><ng-icon name="simpleDiscord" aria-hidden="true" /></a>
+        <a hlmBtn variant="ghost" size="icon" href="#" aria-label="X"><ng-icon name="simpleX" aria-hidden="true" /></a>
+        <a hlmBtn variant="ghost" size="icon" [href]="githubUrl" target="_blank" rel="noopener" aria-label="GitHub"><ng-icon name="simpleGithub" aria-hidden="true" /></a>
+      </div>
+    </div>
+  </lt-footer>
+</div>

@@ -1,18 +1,8 @@
-/* To learn more about this file see: https://angular.io/config/tsconfig. */
+/* Component and service specs next to their code (src/**), run by `ng test`. The tooling tests in tests/unit/ have tsconfig.tests.json. */
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "./out-tsc/spec",
-    "types": [
-      "jasmine"
-    ]
+    "types": ["node", "vitest/globals"]
   },
-  "files": [
-    "src/test.ts",
-    "src/polyfills.ts"
-  ],
-  "include": [
-    "src/**/*.spec.ts",
-    "src/**/*.d.ts"
-  ]
+  "include": ["src/**/*.d.ts", "src/**/*.spec.ts", "src/test-setup.ts"]
 }

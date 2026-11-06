@@ -1,0 +1,64 @@
+<div>
+  <section class="relative overflow-hidden" aria-labelledby="home-title">
+    <div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:px-8">
+      <div class="mx-auto max-w-3xl text-center">
+        <div class="mb-8 flex items-center justify-center gap-x-3">
+          <span hlmBadge>v22</span>
+          <span hlmBadge variant="outline">Angular Starter Template</span>
+        </div>
+        <h1 id="home-title" class="text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+          Lenne Angular
+          <span class="mt-2 block text-primary">Base Template</span>
+        </h1>
+        <p class="mx-auto mt-8 max-w-2xl text-lg leading-8 text-muted-foreground">{{ description }}</p>
+        <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <a hlmBtn size="lg" [href]="links.github" target="_blank" rel="noopener">
+            <ng-icon name="simpleGithub" aria-hidden="true" />
+            View on GitHub
+          </a>
+          <a hlmBtn size="lg" variant="outline" [href]="links.spartan" target="_blank" rel="noopener">
+            Spartan UI Docs
+            <ng-icon name="lucideArrowRight" aria-hidden="true" />
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-6 py-16 lg:px-8" aria-labelledby="features-title">
+    <div class="mx-auto mb-16 max-w-2xl text-center">
+      <h2 id="features-title" class="text-3xl font-bold tracking-tight sm:text-4xl">Features</h2>
+      <p class="mt-4 text-lg text-muted-foreground">Everything you need to build modern web applications</p>
+    </div>
+    <ul class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      @for (feature of features; track feature.title) {
+        <li hlmCard class="transition-shadow hover:shadow-lg">
+          <div hlmCardHeader class="flex flex-row items-center gap-3">
+            <span class="rounded-md p-2" [class]="iconClasses[feature.color]">
+              <ng-icon [name]="feature.icon" aria-hidden="true" />
+            </span>
+            <h3 hlmCardTitle>{{ feature.title }}</h3>
+          </div>
+          <p hlmCardContent class="text-sm text-muted-foreground">{{ feature.description }}</p>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-6 py-16 lg:px-8" aria-label="Getting Started">
+    <div hlmAlert>
+      <ng-icon name="lucideInfo" aria-hidden="true" />
+      <h2 hlmAlertTitle>Getting Started</h2>
+      <p hlmAlertDescription>Run 'pnpm run dev' to start the development server on port 3001. Check CLAUDE.md for detailed documentation.</p>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-6 py-16 lg:px-8" aria-label="Credits">
+    <p class="text-center text-sm text-muted-foreground">
+      Built with
+      <a class="font-medium text-primary hover:underline" [href]="links.angular" target="_blank" rel="noopener">Angular 22</a>
+      and
+      <a class="font-medium text-primary hover:underline" [href]="links.spartan" target="_blank" rel="noopener">Spartan UI</a>
+    </p>
+  </section>
+</div>

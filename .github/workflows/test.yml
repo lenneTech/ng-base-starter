@@ -1,0 +1,249 @@
+# CI of the ng-base-starter repository itself. Repo-only: `lt fullstack init` / `lt frontend angular`
+# remove `.github/` (the generated project's CI lives in lt-monorepo's `.gitlab-ci.yml`).
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # pnpm version comes from package.json `packageManager` (single source of truth).
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `check-suppressions` asks GitHub's advisory database about every suppressed advisory.
+      - name: Run check
+        run: pnpm run check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      # The starter must still look like a fresh `ng new` of the pinned Angular CLI; every deviation is listed
+      # with its reason in scripts/check-angular-baseline.mjs (Kai, 2026-11-06). Repo gate, not part of `check`:
+      # a generated project is meant to diverge from the baseline.
+      - name: Compare with the Angular CLI baseline
+        run: pnpm run check:baseline
+
+  e2e-auth:
+    name: E2E Auth (against a real API)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [check]
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    env:
+      NEST_SERVER_LOG: ${{ github.workspace }}/api-e2e.log
+      MONGO_URI: mongodb://127.0.0.1:27017/app-ci
+      NSC__MONGOOSE__URI: mongodb://127.0.0.1:27017/app-ci
+      API_URL: http://localhost:3000
+      NG_API_URL: http://localhost:3000
+      NG_PUBLIC_API_URL: http://localhost:3000
+      NG_PUBLIC_SITE_URL: http://localhost:3001
+      NG_PUBLIC_APP_ENV: ci
+      # The Playwright webServer boots the built server (`.output/server/index.mjs`) on :3001.
+      E2E_BUILT_SERVER: 'true'
+      PLAYWRIGHT: 'true'
+      # The AI module is off in nest-server-starter by default; these switch it (and MCP) on, so the
+      # AI specs check the enabled state. Throwaway value, only for this job.
+      NSC__AI__ENCRYPTION_SECRET: ci-e2e-throwaway-ai-encryption-secret-000
+      NSC__AI__MCP__ENABLED: 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Checkout nest-server-starter (the API side of the contract)
+        uses: actions/checkout@v4
+        with:
+          repository: lenneTech/nest-server-starter
+          ref: main
+          path: api
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: 'pnpm'
+
+      - name: Install API dependencies
+        working-directory: api
+        run: pnpm install --frozen-lockfile
+
+      - name: Build API
+        working-directory: api
+        run: pnpm run build
+
+      # nest-server-starter refuses a NODE_ENV without a block in src/config.env.ts; `e2e` has one.
+      - name: Run API migrations
+        working-directory: api
+        env:
+          NODE_ENV: e2e
+        run: pnpm run migrate:up
+
+      - name: Install app dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build app
+        run: pnpm run build
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      # `start:e2e:dist` sets NODE_ENV=e2e explicitly (an empty or unknown NODE_ENV is refused).
+      - name: Start API with the HTTP init closed
+        env:
+          NSC__SYSTEM_SETUP__HTTP_INIT: 'false'
+        run: |
+          setsid bash -c 'cd api && exec pnpm run start:e2e:dist' > "$GITHUB_WORKSPACE/api-e2e-closed.log" 2>&1 &
+          echo $! > /tmp/api-closed.pid
+          timeout 180 bash -c '
+            until curl -sf http://localhost:3000/meta > /dev/null; do
+              kill -0 "$(cat /tmp/api-closed.pid)" 2>/dev/null || {
+                echo "::error::API process died during boot"; tail -n 60 "$GITHUB_WORKSPACE/api-e2e-closed.log"; exit 1;
+              }
+              sleep 2
+            done'
+          echo "API is up, HTTP init closed"
+
+      - name: Setup page without the HTTP init (hint instead of the form)
+        env:
+          E2E_SETUP_CASE: closed
+        run: pnpm exec playwright test tests/e2e/system-setup.spec.ts
+
+      - name: Stop the API with the HTTP init closed
+        run: |
+          kill -- "-$(cat /tmp/api-closed.pid)"
+          timeout 30 bash -c 'while curl -sf http://localhost:3000/meta > /dev/null; do sleep 1; done'
+          echo "API stopped"
+
+      - name: Start API and wait for readiness
+        run: |
+          setsid bash -c 'cd api && exec pnpm run start:e2e:dist' > "$NEST_SERVER_LOG" 2>&1 &
+          echo $! > /tmp/api.pid
+          timeout 180 bash -c '
+            until curl -sf http://localhost:3000/meta > /dev/null; do
+              kill -0 "$(cat /tmp/api.pid)" 2>/dev/null || {
+                echo "::error::API process died during boot"; tail -n 60 "$NEST_SERVER_LOG"; exit 1;
+              }
+              sleep 2
+            done'
+          echo "API is up"
+
+      - name: Create the first admin through the setup page
+        env:
+          E2E_SETUP_CASE: open
+        run: pnpm exec playwright test tests/e2e/system-setup.spec.ts
+
+      - name: Check that the system is set up
+        run: |
+          curl -sf http://localhost:3000/system-setup/status | tee /tmp/setup-status.json
+          jq -e '.needsSetup == false' /tmp/setup-status.json > /dev/null || {
+            echo "::error::the setup page did not create the first admin"; exit 1;
+          }
+
+      # `E2E_EXPECT_AUTH_MODE`: the lifecycle spec checks the `authMode` the app adopted after sign-in. `GET /iam/features`
+      # cannot tell the modes apart (its `jwt` reports the JWT plugin, on in both).
+      - name: Run auth E2E suite (cookie mode)
+        env:
+          E2E_EXPECT_AUTH_MODE: cookie
+        run: pnpm run test:e2e
+
+      # The same suite against the API in JWT mode: `NSC__COOKIES=false` (top-level `cookies`, not `betterAuth.cookies`);
+      # sign-in returns a JWT, the app sends it as bearer header and keeps no session cookie. Same database, so the admin
+      # from the setup step stays. Same-origin through the app's `/api` proxy for now: with cookies off, nest-server
+      # answers CORS with a wildcard, which browsers refuse for the credentialed requests the app sends cross-origin
+      # (credentialed CORS in JWT mode comes with nest-server 12.7.0; then this run goes cross-origin too).
+      - name: Restart the API in JWT mode
+        run: |
+          kill -- "-$(cat /tmp/api.pid)"
+          timeout 30 bash -c 'while curl -sf http://localhost:3000/meta > /dev/null; do sleep 1; done'
+          NSC__COOKIES=false setsid bash -c 'cd api && exec pnpm run start:e2e:dist' > "$NEST_SERVER_LOG" 2>&1 &
+          echo $! > /tmp/api.pid
+          timeout 180 bash -c '
+            until curl -sf http://localhost:3000/meta > /dev/null; do
+              kill -0 "$(cat /tmp/api.pid)" 2>/dev/null || {
+                echo "::error::API process died during boot"; tail -n 60 "$NEST_SERVER_LOG"; exit 1;
+              }
+              sleep 2
+            done'
+
+      - name: Run auth E2E suite (JWT mode)
+        env:
+          E2E_EXPECT_AUTH_MODE: jwt
+          NG_PUBLIC_API_PROXY: 'true'
+        run: pnpm run test:e2e
+
+      # NEVER upload the API log: it carries live bearer credentials (a verification token grants
+      # email verification for that account to whoever holds it). The Playwright report is safe.
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  windows:
+    name: Windows (non-blocking)
+    runs-on: windows-latest
+    continue-on-error: true
+    timeout-minutes: 45
+    steps:
+      # Git for Windows defaults to core.autocrlf=true; emulate it so CRLF problems surface here.
+      - name: Emulate the Git for Windows line-ending default
+        run: git config --global core.autocrlf true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        id: install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm run format:check
+
+      - name: Lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm run lint
+
+      - name: Unit tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm run test:unit
+
+      - name: Build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm run build

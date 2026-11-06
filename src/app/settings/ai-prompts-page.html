@@ -1,0 +1,163 @@
+<div class="mx-auto max-w-7xl px-4 py-8">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold">KI-Vorlagen</h1>
+    <p class="text-muted-foreground">
+      Schnelle Textbausteine, die du im KI-Chat per Klick einfügen kannst. Sichtbarkeit: <strong>Privat</strong> (nur du) oder <strong>Tenant</strong> (alle Mitglieder deines
+      Tenants). Platzhalter wie <code>{{ exampleToken }}</code> werden beim Einfügen NICHT ersetzt — sie werden erst zur Laufzeit vom Backend aufgelöst, wenn die Vorlage als Prompt
+      abgeschickt wird.
+    </p>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <div class="min-w-0 space-y-6">
+      @if (errorText(); as error) {
+        <lt-notice variant="error">{{ error }}</lt-notice>
+      }
+
+      <!-- Form -->
+      <section hlmCard aria-labelledby="ai-prompt-form-title">
+        <div hlmCardHeader>
+          <h2 id="ai-prompt-form-title" hlmCardTitle>{{ editId() ? 'Vorlage bearbeiten' : 'Neue Vorlage' }}</h2>
+        </div>
+        <div hlmCardContent class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <lt-form-field for="prompt-name" label="Name">
+            <input
+              hlmInput
+              id="prompt-name"
+              autocomplete="off"
+              placeholder="z. B. Kurze freundliche Antwort"
+              data-test="prompt-name"
+              [value]="draft().name"
+              (input)="setText('name', $event)"
+            />
+          </lt-form-field>
+          <lt-form-field for="prompt-scope" label="Sichtbarkeit">
+            <lt-select id="prompt-scope" data-test="prompt-scope" [options]="scopeOptions" [value]="draft().scope" (valueChange)="setScope($event)" />
+          </lt-form-field>
+          <lt-form-field for="prompt-description" label="Beschreibung" class="sm:col-span-2">
+            <input
+              hlmInput
+              id="prompt-description"
+              autocomplete="off"
+              placeholder="Optional — wofür ist diese Vorlage?"
+              [value]="draft().description"
+              (input)="setText('description', $event)"
+            />
+          </lt-form-field>
+          <lt-form-field for="prompt-content" label="Inhalt" hint="Wird beim Anklicken in den Chat-Eingabebereich eingefügt." class="sm:col-span-2">
+            <textarea
+              hlmTextarea
+              id="prompt-content"
+              rows="4"
+              placeholder="Beispiel: Schreibe eine kurze, freundliche Antwort an den Kunden zu …"
+              data-test="prompt-content"
+              [value]="draft().content"
+              (input)="setText('content', $event)"
+            ></textarea>
+          </lt-form-field>
+          <lt-form-field for="prompt-icon" label="Icon" hint="Lucide-Name (z. B. i-lucide-mail) oder ein Emoji">
+            <input hlmInput id="prompt-icon" autocomplete="off" placeholder="i-lucide-mail" [value]="draft().icon" (input)="setText('icon', $event)" />
+          </lt-form-field>
+          <lt-form-field for="prompt-order" label="Reihenfolge">
+            <input hlmInput id="prompt-order" type="number" inputmode="numeric" placeholder="100" [value]="draft().order ?? ''" (input)="setOrder($event)" />
+          </lt-form-field>
+          <lt-form-field for="prompt-enabled" label="Aktiv">
+            <hlm-switch inputId="prompt-enabled" [checked]="draft().enabled" (checkedChange)="setEnabled($event)" />
+          </lt-form-field>
+        </div>
+        <div hlmCardFooter class="flex gap-2">
+          <button hlmBtn type="button" data-test="prompt-save" [disabled]="saving()" [attr.aria-busy]="saving() || null" (click)="save()">
+            @if (saving()) {
+              <ng-icon name="lucideLoaderCircle" class="animate-spin" aria-hidden="true" />
+            } @else {
+              <ng-icon [name]="editId() ? 'lucideSave' : 'lucidePlus'" aria-hidden="true" />
+            }
+            {{ editId() ? 'Speichern' : 'Vorlage anlegen' }}
+          </button>
+          @if (editId()) {
+            <button hlmBtn variant="ghost" type="button" (click)="cancel()">
+              <ng-icon name="lucideX" aria-hidden="true" />
+              Abbrechen
+            </button>
+          }
+        </div>
+      </section>
+
+      <!-- List -->
+      <section hlmCard aria-labelledby="ai-prompts-list-title">
+        <div hlmCardHeader>
+          <h2 id="ai-prompts-list-title" hlmCardTitle tabindex="-1" class="outline-none">Sichtbare Vorlagen</h2>
+        </div>
+        <div hlmCardContent>
+          @if (prompts.loading()) {
+            <div class="py-8 text-center text-muted-foreground" role="status">
+              <ng-icon name="lucideLoaderCircle" size="1.5rem" class="animate-spin" aria-label="Lädt" />
+            </div>
+          } @else if (prompts.prompts().length === 0) {
+            <p class="py-8 text-center text-muted-foreground">Noch keine Vorlagen. Lege oben deine erste an.</p>
+          } @else {
+            <div class="space-y-6">
+              @for (group of groups(); track group.key) {
+                <div>
+                  <h3 class="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase" [id]="'ai-prompts-group-' + group.key">{{ group.label }}</h3>
+                  <ul class="divide-y" [attr.aria-labelledby]="'ai-prompts-group-' + group.key">
+                    @for (prompt of group.prompts; track prompt.id) {
+                      <li class="flex items-start justify-between gap-3 py-3" data-test="prompt-row">
+                        <div class="min-w-0">
+                          <p class="flex flex-wrap items-center gap-2 font-medium">
+                            <app-ai-prompt-icon [icon]="prompt.icon" />
+                            <span>{{ prompt.name }}</span>
+                            <span hlmBadge variant="outline">#{{ prompt.order ?? defaultOrder }}</span>
+                            @if (prompt.enabled === false) {
+                              <span hlmBadge variant="outline" class="border-warning/30 bg-warning/10 text-warning">inaktiv</span>
+                            }
+                          </p>
+                          @if (prompt.description) {
+                            <p class="text-xs text-muted-foreground">{{ prompt.description }}</p>
+                          }
+                          <p class="mt-1 line-clamp-2 text-xs text-muted-foreground">{{ prompt.content }}</p>
+                        </div>
+                        @if (canMutate(prompt)) {
+                          <div class="flex shrink-0 items-center gap-1">
+                            <button
+                              hlmBtn
+                              variant="ghost"
+                              size="icon-sm"
+                              type="button"
+                              hlmTooltip="Bearbeiten"
+                              [attr.aria-label]="'Vorlage „' + prompt.name + '“ bearbeiten'"
+                              (click)="edit(prompt)"
+                            >
+                              <ng-icon name="lucidePencil" aria-hidden="true" />
+                            </button>
+                            <button
+                              hlmBtn
+                              variant="ghost"
+                              size="icon-sm"
+                              type="button"
+                              class="text-destructive hover:text-destructive"
+                              hlmTooltip="Löschen"
+                              [attr.aria-label]="'Vorlage „' + prompt.name + '“ löschen'"
+                              (click)="remove(prompt)"
+                            >
+                              <ng-icon name="lucideTrash" aria-hidden="true" />
+                            </button>
+                          </div>
+                        }
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+
+    <!-- Placeholder helper sidebar -->
+    <aside class="space-y-4" aria-label="Platzhalter">
+      <app-ai-placeholder-hint />
+    </aside>
+  </div>
+</div>

@@ -1,0 +1,5 @@
+@if (iconName(); as name) {
+  <ng-icon [name]="name" size="1rem" class="shrink-0" aria-hidden="true" />
+} @else if (text(); as value) {
+  <span aria-hidden="true">{{ value }}</span>
+}

@@ -1,0 +1,67 @@
+@if (!showPasskeyPrompt()) {
+  <lt-page-card class="w-full max-w-md" icon="lucideUserPlus" title="Registrieren">
+    <form [formRoot]="registerForm" class="flex flex-col gap-4">
+      <lt-form-field for="register-name" label="Name" [error]="fieldError(registerForm.name)" [required]="true">
+        <input hlmInput id="register-name" type="text" autocomplete="name" placeholder="Name eingeben" [formField]="registerForm.name" aria-describedby="register-name-error" />
+      </lt-form-field>
+
+      <lt-form-field for="register-email" label="E-Mail" [error]="fieldError(registerForm.email)" [required]="true">
+        <input
+          hlmInput
+          id="register-email"
+          type="email"
+          autocomplete="username"
+          placeholder="E-Mail eingeben"
+          [formField]="registerForm.email"
+          aria-describedby="register-email-error"
+        />
+      </lt-form-field>
+
+      <lt-form-field for="register-password" label="Passwort" [error]="fieldError(registerForm.password)" [required]="true">
+        <lt-password-input id="register-password" autocomplete="new-password" placeholder="Passwort eingeben" [formField]="registerForm.password" />
+      </lt-form-field>
+
+      <lt-form-field for="register-confirm-password" label="Passwort bestätigen" [error]="fieldError(registerForm.confirmPassword)" [required]="true">
+        <lt-password-input id="register-confirm-password" autocomplete="new-password" placeholder="Passwort wiederholen" [formField]="registerForm.confirmPassword" />
+      </lt-form-field>
+
+      @if (requireTerms()) {
+        <div class="flex flex-col gap-1">
+          <div class="flex items-start gap-2">
+            <hlm-checkbox inputId="register-terms" [checked]="termsAccepted()" (checkedChange)="acceptTerms($event)" aria-describedby="register-terms-error" />
+            <label for="register-terms" class="text-sm">
+              Ich akzeptiere die
+              <a href="/legal/terms" target="_blank" class="font-medium text-primary hover:underline">AGB</a>
+              und
+              <a href="/legal/privacy" target="_blank" class="font-medium text-primary hover:underline">Datenschutzerklärung</a>
+            </label>
+          </div>
+          @if (fieldError(registerForm.termsAccepted); as error) {
+            <p id="register-terms-error" class="text-sm text-destructive" role="alert">{{ error }}</p>
+          }
+        </div>
+      }
+
+      <button hlmBtn type="submit" class="w-full" [disabled]="loading()">Konto erstellen</button>
+    </form>
+
+    <p ltPageCardFooter class="text-center text-sm text-muted-foreground">
+      Bereits ein Konto?
+      <a routerLink="/auth/login" class="font-medium text-primary hover:underline">Anmelden</a>
+    </p>
+  </lt-page-card>
+} @else {
+  <lt-page-card class="w-full max-w-md">
+    <div class="flex flex-col items-center gap-6">
+      <ng-icon name="lucideKeyRound" size="4rem" class="text-primary" aria-hidden="true" />
+      <div class="text-center">
+        <h1 class="text-xl font-semibold">Passkey hinzufügen?</h1>
+        <p class="mt-2 text-sm text-muted-foreground">Mit einem Passkey kannst du dich schnell und sicher ohne Passwort anmelden.</p>
+      </div>
+      <div class="flex w-full flex-col gap-3">
+        <button hlmBtn type="button" class="w-full" [disabled]="passkeyLoading()" (click)="addPasskey()">Passkey hinzufügen</button>
+        <button hlmBtn variant="outline" type="button" class="w-full" (click)="skipPasskey()">Später einrichten</button>
+      </div>
+    </div>
+  </lt-page-card>
+}

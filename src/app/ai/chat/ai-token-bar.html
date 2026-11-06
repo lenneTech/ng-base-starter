@@ -1,0 +1,63 @@
+@if (visible()) {
+  <hlm-popover>
+    <button
+      hlmPopoverTrigger
+      type="button"
+      class="flex cursor-pointer items-center gap-2 rounded-md outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring"
+      aria-label="Token-Verbrauch anzeigen"
+      [attr.aria-describedby]="summaryId"
+    >
+      <ng-icon name="lucideCoins" size="1rem" class="shrink-0 text-muted-foreground" aria-hidden="true" />
+      <hlm-progress class="h-2 w-32" aria-hidden="true" [value]="figures().usedPercent">
+        @switch (tone()) {
+          @case ('critical') {
+            <hlm-progress-indicator class="bg-destructive" />
+          }
+          @case ('warning') {
+            <hlm-progress-indicator class="bg-warning" />
+          }
+          @default {
+            <hlm-progress-indicator class="bg-success" />
+          }
+        }
+      </hlm-progress>
+      <span class="text-xs tabular-nums text-muted-foreground" [id]="summaryId">{{ formatTokens(figures().used) }} / {{ formatTokens(figures().max) }}</span>
+      <ng-icon name="lucideInfo" size="0.75rem" class="text-muted-foreground" aria-hidden="true" />
+    </button>
+
+    <hlm-popover-content class="w-80" *hlmPopoverPortal>
+      <div hlmPopoverHeader>
+        <p hlmPopoverTitle class="font-semibold">{{ scopeLabel() }}</p>
+        @if (scopeDescription()) {
+          <p hlmPopoverDescription class="text-xs">{{ scopeDescription() }}</p>
+        }
+      </div>
+      <dl class="space-y-2">
+        <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-muted-foreground">Limit</dt>
+          <dd class="font-medium tabular-nums">{{ formatTokens(figures().max) }}</dd>
+        </div>
+        <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-muted-foreground">Verbraucht (kumulativ)</dt>
+          <dd class="font-medium tabular-nums">
+            {{ formatTokens(figures().used) }} <span class="text-muted-foreground">({{ usedPercentText() }}%)</span>
+          </dd>
+        </div>
+        <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-muted-foreground">Übrig</dt>
+          <dd class="font-medium tabular-nums">{{ formatTokens(figures().remaining) }}</dd>
+        </div>
+        <div class="flex items-baseline justify-between gap-3 border-t pt-2">
+          <dt class="text-muted-foreground">Letzte Anfrage</dt>
+          <dd class="font-medium tabular-nums">{{ formatTokens(figures().lastRequest) }}</dd>
+        </div>
+        @if (resetAt()) {
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-muted-foreground">{{ isLlmScope() ? 'Periode endet' : 'Reset' }}</dt>
+            <dd class="text-xs">{{ resetAt() }}</dd>
+          </div>
+        }
+      </dl>
+    </hlm-popover-content>
+  </hlm-popover>
+}

@@ -1,0 +1,96 @@
+# pnpm settings for the ng-base-starter (single-package project).
+#
+# IMPORTANT: This file intentionally has NO `packages:` field. It carries ONLY
+# workspace-scoped settings (overrides, auditConfig, allowBuilds / onlyBuiltDependencies,
+# minimumReleaseAgeExclude), the same shape as the nuxt-base-template. pnpm 11 silently
+# ignores these keys when they live in package.json's `pnpm` block. Inside an lt-monorepo
+# the lt CLI hoists them into the root workspace file.
+#
+# All override TARGETS (right-hand side) are FIXED versions, never ranges, to prevent
+# silent major-version jumps. The LEFT side may carry a range to scope which vulnerable
+# versions are replaced. Every override and every suppression carries its reason.
+
+# ----------------------------------------------------------------------------------
+# Advisories that cannot be fixed by an override, and why the residual is acceptable.
+#
+# Rules for adding one: name the advisory, say why it cannot be fixed, say why the
+# residual risk is acceptable, and date the verification. `scripts/check-suppressions.mjs`
+# (part of `check`) fails once an entry gets an installable fix, is withdrawn, or its
+# package no longer resolves to a vulnerable version.
+# ----------------------------------------------------------------------------------
+auditConfig:
+  ignoreGhsas: []
+
+# pnpm 11 renamed `onlyBuiltDependencies` to `allowBuilds` (map of pkg -> bool). Both keys
+# are kept so the file works across pnpm 10 and pnpm 11.
+allowBuilds:
+  # The Angular CLI's own defaults for `ng new` (22.2.6): the prebuilt optional binaries are
+  # enough, the install scripts only compile a fallback.
+  '@parcel/watcher': false
+  esbuild: true
+  lmdb: false
+  msgpackr-extract: false
+  simple-git-hooks: true
+
+minimumReleaseAgeExclude:
+  # ONLY our own first-party scope: every @lenne.tech release is installable the moment we
+  # publish it. Do NOT add third-party packages here as a habit; wait out the ~1-day gate.
+  - '@lenne.tech/*'
+
+onlyBuiltDependencies:
+  - esbuild
+  - simple-git-hooks
+
+# `pnpm peers check` (part of `check`) fails on one pairing nobody in this tree chose:
+# @angular/build 22.2.6 > @oxc-parser/binding-wasm32-wasi 0.156.0 (the WASM fallback of the oxc parser,
+# an optional dependency that only loads where no native binding exists) pins @emnapi/core and
+# @emnapi/runtime EXACTLY at 2.0.0-alpha.6, while its own @napi-rs/wasm-runtime 1.2.7 (newest) declares
+# `^1.7.1 || 2.0.0-beta.2 || 2.0.0-beta.3`. Read 2026-11-06. The rule accepts exactly that version for
+# exactly that consumer; it changes nothing that installs. Drop it once oxc-parser's binding and
+# wasm-runtime agree again (pnpm peers check passes without it).
+peerDependencyRules:
+  allowedVersions:
+    '@napi-rs/wasm-runtime>@emnapi/core': 2.0.0-alpha.6
+    '@napi-rs/wasm-runtime>@emnapi/runtime': 2.0.0-alpha.6
+
+# Each override forces a vulnerable transitive dependency to a patched, FIXED version. Only override
+# packages this project actually resolves (verify with `grep "'\?<pkg>@[0-9]" pnpm-lock.yaml`): a dead
+# override is useless here and, inside an lt-monorepo, a range selector like `pkg@<X` can shadow the
+# api's own override and re-introduce the CVE. `scripts/check-overrides.mjs` (part of `check`) reports
+# an entry that stopped being load-bearing.
+#
+# Selector semantics (pnpm 11): a range key applies whenever it INTERSECTS the range a dependent
+# requests. Keep keys below the first patched version, never at or above it.
+#
+# Method for every entry (2026-11-06, first resolve of the Angular 22 tree): fresh `pnpm install`,
+# `pnpm audit`; only an entry whose package shows up there was added. Without the entries `pnpm audit`
+# reports js-yaml (three highs), postcss-selector-parser, glob and minimatch.
+overrides:
+  # minimatch 11 for the eslint chain that lints the Angular templates (angular-eslint 22.6.0 →
+  # eslint 10.14.0, @eslint/config-array 0.23.5, @typescript-eslint/typescript-estree 8.72.1). Each is
+  # on its newest release and requests minimatch ^10, vulnerable to GHSA-g3hv-75wg-m249 (moderate, DoS
+  # through globparts amplification, first patched 11.0.1). minimatch 11 dropped `makeRe()` and
+  # `Minimatch#regexp`; none of the three calls them. Read 2026-11-06: eslint (`lib/eslint/
+  # eslint-helpers.js`) and config-array use `new Minimatch(pattern, options).match(path[, partial])`
+  # and `.pattern`, typescript-estree calls `minimatch(path, pattern, { dot: true })`; all three exist
+  # unchanged in 11. Scoped per consumer, never a bare `minimatch@<11.0.1`: in an lt-monorepo that would
+  # also reach api consumers that may need `makeRe()`. Drop each entry once its consumer requests
+  # minimatch >=11.0.1 itself; `check-overrides.mjs` reports it.
+  '@eslint/config-array>minimatch@<11.0.1': 11.0.4
+  '@typescript-eslint/typescript-estree>minimatch@<11.0.1': 11.0.4
+  'eslint>minimatch@<11.0.1': 11.0.4
+  # js-yaml quadratic CPU consumption via YAML merge-key chains (GHSA-52cp-r559-cp3m, GHSA-5p4m-2wfm-xmqj,
+  # GHSA-2883-xcg3-v3hh, all high, patched >=4.3.2). Transitive via @hey-api/openapi-ts >
+  # @hey-api/json-schema-ref-parser, whose newest release pins js-yaml EXACTLY at 4.2.0, so no bump can
+  # fix it. Same entry as the nuxt-base-template. Drop once the parser requests >=4.3.2 itself.
+  'js-yaml@>=4.0.0 <4.3.2': 4.3.2
+  # postcss-selector-parser, quadratic complexity when parsing flat selectors (GHSA-rj75-hqrm-r3gf,
+  # moderate, first patched 6.1.5 in the 6.x line). Transitive via @tailwindcss/typography 0.5.20 (its
+  # newest), which pins it EXACTLY at 6.0.10. Same major on purpose; the Nuxt template measured the
+  # typography CSS byte-identical between 6.0.10 and 6.1.5 (2026-10-28). Build tooling only, not in
+  # `.output/`. Drop once @tailwindcss/typography requests >=6.1.5 itself.
+  'postcss-selector-parser@<6.1.5': 6.1.5
+  # glob 14 for rimraf (glob ^13, `glob`/`globSync` behind `--glob`): GHSA-3g3m-2fjr-6pw4 (glob >=9.0.0
+  # <=14.0.1, moderate, first patched 14.0.2). Same entry and measurement as the nuxt-base-template
+  # (rimraf `--glob` identical on glob 13 and 14). Drop once rimraf requests glob >=14.0.2 itself.
+  'rimraf>glob@<14.0.2': 14.0.3

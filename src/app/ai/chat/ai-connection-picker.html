@@ -1,0 +1,26 @@
+@if (connections.connections().length > 1) {
+  <div class="flex items-center gap-2">
+    <ng-icon name="lucidePlug" size="1rem" class="text-muted-foreground" aria-hidden="true" />
+    <lt-select
+      id="ai-connection-picker"
+      class="min-w-48"
+      label="KI-Verbindung wählen"
+      placeholder="KI-Verbindung wählen"
+      [options]="options()"
+      [disabled]="connections.locked()"
+      [(value)]="selectedId"
+      (valueChange)="choose($event)"
+    />
+    @if (connections.locked()) {
+      <span
+        class="inline-flex rounded-md text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        role="img"
+        tabindex="0"
+        aria-label="Die Verbindung ist vorgegeben und kann nicht geändert werden."
+        hlmTooltip="Die Verbindung ist vorgegeben und kann nicht geändert werden."
+      >
+        <ng-icon name="lucideLock" size="1rem" aria-hidden="true" />
+      </span>
+    }
+  </div>
+}

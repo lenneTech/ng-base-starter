@@ -1,0 +1,42 @@
+<button
+  hlmBtn
+  variant="ghost"
+  size="sm"
+  type="button"
+  aria-label="Vorlagen einfügen"
+  data-test="ai-prompt-picker"
+  [attr.aria-busy]="prompts.loading() || null"
+  [hlmDropdownMenuTrigger]="menu"
+>
+  @if (prompts.loading()) {
+    <ng-icon name="lucideLoaderCircle" class="animate-spin" aria-hidden="true" />
+  } @else {
+    <ng-icon name="lucideClipboardList" aria-hidden="true" />
+  }
+  Vorlagen
+</button>
+
+<ng-template #menu>
+  <hlm-dropdown-menu class="min-w-64">
+    @for (group of groups(); track group.key; let last = $last) {
+      <hlm-dropdown-menu-group [attr.aria-label]="group.label">
+        <hlm-dropdown-menu-label aria-hidden="true">{{ group.label }}</hlm-dropdown-menu-label>
+        @for (prompt of group.prompts; track prompt.id) {
+          <button hlmDropdownMenuItem type="button" (triggered)="pick(prompt)">
+            <app-ai-prompt-icon showText="false" [icon]="prompt.icon" />
+            {{ prompt.name }}
+          </button>
+        }
+      </hlm-dropdown-menu-group>
+      @if (!last) {
+        <hlm-dropdown-menu-separator role="separator" />
+      }
+    } @empty {
+      <button hlmDropdownMenuItem type="button" disabled>Noch keine Vorlagen</button>
+    }
+    @if (errorText(); as error) {
+      <hlm-dropdown-menu-separator role="separator" />
+      <button hlmDropdownMenuItem type="button" disabled class="text-destructive">{{ error }}</button>
+    }
+  </hlm-dropdown-menu>
+</ng-template>

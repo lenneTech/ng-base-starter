@@ -1,0 +1,83 @@
+<lt-page-card class="w-full max-w-md">
+  @switch (view()) {
+    @case ('form') {
+      <div class="mb-6 flex flex-col items-center gap-2 text-center">
+        <ng-icon name="lucideShieldCheck" size="2rem" class="text-primary" aria-hidden="true" />
+        <h1 class="text-2xl font-bold">System einrichten</h1>
+        <p class="text-sm text-muted-foreground">Erstelle den ersten Administrator-Account, um das System zu starten.</p>
+      </div>
+      <form [formRoot]="setupForm" class="flex flex-col gap-4">
+        <lt-form-field for="setup-name" label="Name" [error]="fieldError(setupForm.name)" [required]="true">
+          <input hlmInput id="setup-name" type="text" autocomplete="name" placeholder="Name eingeben" [formField]="setupForm.name" aria-describedby="setup-name-error" />
+        </lt-form-field>
+        <lt-form-field for="setup-email" label="E-Mail" [error]="fieldError(setupForm.email)" [required]="true">
+          <input hlmInput id="setup-email" type="email" autocomplete="username" placeholder="E-Mail eingeben" [formField]="setupForm.email" aria-describedby="setup-email-error" />
+        </lt-form-field>
+        <lt-form-field for="setup-password" label="Passwort" [error]="fieldError(setupForm.password)" [required]="true">
+          <lt-password-input id="setup-password" autocomplete="new-password" placeholder="Passwort eingeben" [formField]="setupForm.password" />
+        </lt-form-field>
+        <lt-form-field for="setup-confirm-password" label="Passwort bestätigen" [error]="fieldError(setupForm.confirmPassword)" [required]="true">
+          <lt-password-input id="setup-confirm-password" autocomplete="new-password" placeholder="Passwort wiederholen" [formField]="setupForm.confirmPassword" />
+        </lt-form-field>
+        @if (tokenRequired()) {
+          <lt-form-field
+            for="setup-token"
+            label="Setup-Token"
+            hint="Der Wert aus NSC__SYSTEM_SETUP__HTTP_INIT__TOKEN der API."
+            [error]="fieldError(setupForm.token)"
+            [required]="true"
+          >
+            <input
+              hlmInput
+              id="setup-token"
+              type="password"
+              autocomplete="off"
+              placeholder="Setup-Token eingeben"
+              [formField]="setupForm.token"
+              aria-describedby="setup-token-hint setup-token-error"
+            />
+          </lt-form-field>
+        }
+        <button hlmBtn type="submit" class="w-full" [disabled]="loading()">System einrichten</button>
+      </form>
+      <p class="mt-6 text-center text-sm text-muted-foreground">
+        Bereits eingerichtet?
+        <a routerLink="/auth/login" class="font-medium text-primary hover:underline">Anmelden</a>
+      </p>
+    }
+    @case ('closed') {
+      <div class="space-y-4">
+        <div class="flex flex-col items-center gap-2 text-center">
+          <ng-icon name="lucideShieldCheck" size="2rem" class="text-primary" aria-hidden="true" />
+          <h1 class="text-2xl font-bold">System einrichten</h1>
+        </div>
+        <lt-notice variant="info" title="Die Ersteinrichtung erfolgt über die Konfiguration">
+          <!-- wrap-anywhere: the names have no break point and are wider than a phone (tests/e2e/system-setup.spec.ts checks 320 px). -->
+          <div class="space-y-3 text-sm">
+            <p>Auf diesem System lässt sich der erste Administrator nicht über diese Seite anlegen. Setze dafür diese Umgebungsvariablen der API und starte die API neu:</p>
+            <ul class="list-disc space-y-1 pl-5">
+              <li><code class="wrap-anywhere">NSC__SYSTEM_SETUP__INITIAL_ADMIN__EMAIL</code></li>
+              <li><code class="wrap-anywhere">NSC__SYSTEM_SETUP__INITIAL_ADMIN__PASSWORD</code></li>
+              <li><code class="wrap-anywhere">NSC__SYSTEM_SETUP__INITIAL_ADMIN__NAME</code> (optional)</li>
+            </ul>
+            <p>
+              Oder gib diese Seite mit einem Setup-Token frei: Setze <code class="wrap-anywhere">NSC__SYSTEM_SETUP__HTTP_INIT__TOKEN</code> (mindestens 16 Zeichen, nicht nur
+              Ziffern), starte die API neu und lade diese Seite neu. Das Formular fragt dann nach dem Token.
+            </p>
+          </div>
+        </lt-notice>
+        <p class="text-center text-sm"><a routerLink="/auth/login" class="font-medium text-primary hover:underline">Zur Anmeldung</a></p>
+      </div>
+    }
+    @case ('done') {
+      <div class="space-y-2 text-center">
+        <h1 class="text-2xl font-bold">System einrichten</h1>
+        <p class="text-sm text-muted-foreground">Das System ist bereits eingerichtet.</p>
+        <a routerLink="/auth/login" class="font-medium text-primary hover:underline">Zur Anmeldung</a>
+      </div>
+    }
+    @default {
+      <p class="text-center text-sm text-muted-foreground" role="status">Einrichtungsstatus wird geprüft …</p>
+    }
+  }
+</lt-page-card>

@@ -1,0 +1,39 @@
+/* `source('.')`: Tailwind scans src/ only, not the rest of the workspace. */
+@import 'tailwindcss' source('.');
+
+/* ng-base: the theme core (Spartan preset, lenne.Tech palette, semantic tokens, transitions, base layer) plus the CSS of
+   each component the app renders. Every file pulls in what it builds on (lt-select brings select and combobox).
+   A new component in a template needs its file here; tests/unit/styles-contract.test.ts names the missing one.
+   All components at once: '@lenne.tech/ng-base/ui/styles/theme.css' (about 200 kB raw instead of a fraction of it).
+   Vendor mode: the same files below './core/ui/styles/'. */
+@import '@lenne.tech/ng-base/ui/styles/core.css';
+@import '@lenne.tech/ng-base/ui/styles/components/alert.css';
+@import '@lenne.tech/ng-base/ui/styles/components/badge.css';
+@import '@lenne.tech/ng-base/ui/styles/components/button.css';
+@import '@lenne.tech/ng-base/ui/styles/components/card.css';
+@import '@lenne.tech/ng-base/ui/styles/components/checkbox.css';
+@import '@lenne.tech/ng-base/ui/styles/components/dialog.css';
+@import '@lenne.tech/ng-base/ui/styles/components/dropdown-menu.css';
+@import '@lenne.tech/ng-base/ui/styles/components/input.css';
+@import '@lenne.tech/ng-base/ui/styles/components/popover.css';
+@import '@lenne.tech/ng-base/ui/styles/components/progress.css';
+@import '@lenne.tech/ng-base/ui/styles/components/separator.css';
+@import '@lenne.tech/ng-base/ui/styles/components/sonner.css';
+@import '@lenne.tech/ng-base/ui/styles/components/switch.css';
+@import '@lenne.tech/ng-base/ui/styles/components/textarea.css';
+@import '@lenne.tech/ng-base/ui/styles/components/tooltip.css';
+@import '@lenne.tech/ng-base/ui/styles/components/lt-bug-report.css';
+@import '@lenne.tech/ng-base/ui/styles/components/lt-color-mode-button.css';
+@import '@lenne.tech/ng-base/ui/styles/components/lt-footer.css';
+@import '@lenne.tech/ng-base/ui/styles/components/lt-form-field.css';
+@import '@lenne.tech/ng-base/ui/styles/components/lt-header.css';
+@import '@lenne.tech/ng-base/ui/styles/components/lt-notice.css';
+@import '@lenne.tech/ng-base/ui/styles/components/lt-page-card.css';
+@import '@lenne.tech/ng-base/ui/styles/components/lt-page-title.css';
+@import '@lenne.tech/ng-base/ui/styles/components/lt-password-input.css';
+@import '@lenne.tech/ng-base/ui/styles/components/lt-select.css';
+@plugin '@tailwindcss/typography';
+
+@theme {
+  --breakpoint-3xl: 2400px;
+}

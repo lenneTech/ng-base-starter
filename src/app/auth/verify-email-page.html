@@ -1,0 +1,89 @@
+<lt-page-card class="w-full max-w-md">
+  @if (verifying()) {
+    <div class="flex flex-col items-center gap-6 py-4" role="status">
+      <ng-icon name="lucideLoaderCircle" size="4rem" class="animate-spin text-primary" aria-hidden="true" />
+      <div class="text-center">
+        <h1 class="text-xl font-semibold">E-Mail wird verifiziert...</h1>
+        <p class="mt-2 text-sm text-muted-foreground">Bitte warte einen Moment.</p>
+      </div>
+    </div>
+  } @else if (verified()) {
+    <div class="flex flex-col items-center gap-6 py-4">
+      <ng-icon name="lucideCircleCheck" size="4rem" class="text-success" aria-hidden="true" />
+      <div class="text-center">
+        <h1 class="text-xl font-semibold">E-Mail bestätigt</h1>
+        <p class="mt-2 text-sm text-muted-foreground">Deine E-Mail-Adresse wurde erfolgreich verifiziert. Du kannst dich jetzt anmelden.</p>
+      </div>
+      <a hlmBtn class="w-full" routerLink="/auth/login" [queryParams]="loginQuery">Jetzt anmelden</a>
+    </div>
+  } @else {
+    <div class="flex flex-col items-center gap-6 py-4">
+      @if (verifyError()) {
+        <ng-icon name="lucideCircleX" size="4rem" class="text-destructive" aria-hidden="true" />
+        <div class="text-center">
+          <h1 class="text-xl font-semibold">Verifizierung fehlgeschlagen</h1>
+          <p class="mt-2 text-sm text-muted-foreground">{{ verifyError() }}</p>
+        </div>
+      } @else {
+        <ng-icon name="lucideMailCheck" size="4rem" class="text-primary" aria-hidden="true" />
+        <div class="text-center">
+          <h1 class="text-xl font-semibold">E-Mail bestätigen</h1>
+          <p class="mt-2 text-sm text-muted-foreground">
+            Wir haben eine Bestätigungs-E-Mail an
+            @if (email()) {
+              <strong>{{ email() }}</strong>
+            } @else {
+              <span>deine E-Mail-Adresse</span>
+            }
+            gesendet.
+          </p>
+          <p class="mt-2 text-sm text-muted-foreground">Bitte klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.</p>
+        </div>
+        <lt-notice class="w-full" variant="neutral" title="Keine E-Mail erhalten?">
+          <ul class="mt-1 list-inside list-disc text-sm">
+            <li>Prüfe deinen Spam-Ordner</li>
+            <li>Stelle sicher, dass die E-Mail-Adresse korrekt ist</li>
+          </ul>
+        </lt-notice>
+      }
+
+      @if (maskedEmail()) {
+        <p class="text-center text-sm text-muted-foreground" role="status">
+          Neue E-Mail angefordert für <strong>{{ maskedEmail() }}</strong>
+        </p>
+      }
+
+      <div class="flex w-full flex-col gap-3">
+        @if (resendMode() === 'typed') {
+          <form [formRoot]="addressForm" class="flex flex-col gap-3">
+            <lt-form-field for="verify-email-address" label="E-Mail-Adresse" [error]="fieldError(addressForm.email)">
+              <input
+                hlmInput
+                id="verify-email-address"
+                type="email"
+                autocomplete="email"
+                placeholder="name@beispiel.de"
+                class="w-full"
+                [formField]="addressForm.email"
+                aria-describedby="verify-email-address-error"
+              />
+            </lt-form-field>
+            <button hlmBtn type="submit" class="w-full" [disabled]="cooldown.remaining() > 0 || resending()">{{ resendLabel() }}</button>
+          </form>
+        } @else {
+          <button
+            hlmBtn
+            type="button"
+            class="w-full"
+            [variant]="cooldown.remaining() > 0 ? 'outline' : verifyError() ? 'default' : 'outline'"
+            [disabled]="cooldown.remaining() > 0 || resending()"
+            (click)="resend()"
+          >
+            {{ resendLabel() }}
+          </button>
+        }
+        <a hlmBtn variant="outline" class="w-full" routerLink="/auth/login" [queryParams]="loginQuery">Zurück zur Anmeldung</a>
+      </div>
+    </div>
+  }
+</lt-page-card>
