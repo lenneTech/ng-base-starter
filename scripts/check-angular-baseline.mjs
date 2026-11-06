@@ -90,6 +90,13 @@ export const ALLOWED = [
     reason: '`.output` (lt-monorepo CI, Dockerfile and `lt dev test` start `.output/server/index.mjs`)',
   },
   {
+    key: ['projects', 'app', 'architect', 'build', 'configurations', 'production', 'budgets'],
+    kind: 'value',
+    path: 'angular.json',
+    reason:
+      'initial warning at 650 kB instead of 500 kB (error stays 1 MB): 500 kB is the size of a bare `ng new`; an SSR app with auth and the ng-base UI starts at 498.74 kB, a typical workshop page with a data table reaches 503.76 kB, every ng-base component at once 607.58 kB (measured for 22.0.1). A warning now means more than the whole stack, not the first page.',
+  },
+  {
     key: ['projects', 'app', 'architect', 'build', 'options', 'allowedCommonJsDependencies'],
     kind: 'extra',
     path: 'angular.json',
