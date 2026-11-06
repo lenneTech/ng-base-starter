@@ -5,7 +5,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArrowRight, lucideCircleCheck, lucideDatabase, lucideInfo, lucidePalette, lucideRocket } from '@ng-icons/lucide';
 
 import { BRAND_ICONS } from '../shared/brand-icons';
-import { SITE_DESCRIPTION } from '../shared/site';
+import { SITE_DESCRIPTION, SITE_REPO_URL } from '../shared/site';
 
 /** A feature card of the landing page. */
 interface Feature {
@@ -31,7 +31,7 @@ export class HomePage {
 
   protected readonly links = {
     angular: 'https://angular.dev',
-    github: 'https://github.com/lenneTech/ng-base-starter',
+    github: SITE_REPO_URL,
     spartan: 'https://www.spartan.ng',
   };
 

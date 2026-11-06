@@ -14,9 +14,11 @@
         </a>
       }
       <lt-color-mode-button />
-      <a hlmBtn variant="ghost" size="icon" [href]="githubUrl" target="_blank" rel="noopener" aria-label="GitHub" hlmTooltip="Auf GitHub öffnen">
-        <ng-icon name="simpleGithub" aria-hidden="true" />
-      </a>
+      @if (githubUrl) {
+        <a hlmBtn variant="ghost" size="icon" [href]="githubUrl" target="_blank" rel="noopener" aria-label="GitHub" hlmTooltip="Auf GitHub öffnen">
+          <ng-icon name="simpleGithub" aria-hidden="true" />
+        </a>
+      }
     </div>
   </lt-header>
 
@@ -32,7 +34,9 @@
       <div class="flex items-center gap-1">
         <a hlmBtn variant="ghost" size="icon" href="#" aria-label="Discord"><ng-icon name="simpleDiscord" aria-hidden="true" /></a>
         <a hlmBtn variant="ghost" size="icon" href="#" aria-label="X"><ng-icon name="simpleX" aria-hidden="true" /></a>
-        <a hlmBtn variant="ghost" size="icon" [href]="githubUrl" target="_blank" rel="noopener" aria-label="GitHub"><ng-icon name="simpleGithub" aria-hidden="true" /></a>
+        @if (githubUrl) {
+          <a hlmBtn variant="ghost" size="icon" [href]="githubUrl" target="_blank" rel="noopener" aria-label="GitHub"><ng-icon name="simpleGithub" aria-hidden="true" /></a>
+        }
       </div>
     </div>
   </lt-footer>

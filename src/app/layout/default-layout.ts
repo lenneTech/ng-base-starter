@@ -18,7 +18,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideClipboardList, lucideCode, lucideLogIn, lucideLogOut, lucideSettings, lucideShield, lucideSparkles } from '@ng-icons/lucide';
 
 import { BRAND_ICONS } from '../shared/brand-icons';
-import { SITE_NAME } from '../shared/site';
+import { SITE_NAME, SITE_REPO_URL } from '../shared/site';
 
 /**
  * Layout of `/` and `/app/**`: header with navigation and account actions, content, footer.
@@ -47,7 +47,7 @@ export class DefaultLayout {
   private readonly router = inject(Router);
 
   protected readonly siteName = SITE_NAME;
-  protected readonly githubUrl = 'https://github.com/lenneTech/ng-base-starter';
+  protected readonly githubUrl = SITE_REPO_URL;
   protected readonly year = new Date().getFullYear();
 
   protected readonly headerItems = computed<LtNavigationItem[]>(() => {

@@ -12,10 +12,12 @@
         </h1>
         <p class="mx-auto mt-8 max-w-2xl text-lg leading-8 text-muted-foreground">{{ description }}</p>
         <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <a hlmBtn size="lg" [href]="links.github" target="_blank" rel="noopener">
-            <ng-icon name="simpleGithub" aria-hidden="true" />
-            View on GitHub
-          </a>
+          @if (links.github) {
+            <a hlmBtn size="lg" [href]="links.github" target="_blank" rel="noopener">
+              <ng-icon name="simpleGithub" aria-hidden="true" />
+              View on GitHub
+            </a>
+          }
           <a hlmBtn size="lg" variant="outline" [href]="links.spartan" target="_blank" rel="noopener">
             Spartan UI Docs
             <ng-icon name="lucideArrowRight" aria-hidden="true" />
