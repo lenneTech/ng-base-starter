@@ -121,9 +121,15 @@ describe('Dockerfile — pnpm provisioning', () => {
   });
 });
 
-describe('GitHub workflows — pnpm version comes from package.json', () => {
-  const workflowsDir = join(templateRoot, '.github', 'workflows');
-  const workflows = readdirSync(workflowsDir).filter((f) => /\.ya?ml$/.test(f));
+/**
+ * Only where the template carries its own CI: `lt fullstack init` removes `.github/` from `projects/app`, because the
+ * monorepo root owns CI there. In this repository the workflows exist and the block runs in full.
+ */
+const workflowsDir = join(templateRoot, '.github', 'workflows');
+
+describe.runIf(existsSync(workflowsDir))('GitHub workflows — pnpm version comes from package.json', () => {
+  // Vitest still collects a skipped block, so the read itself must not throw.
+  const workflows = existsSync(workflowsDir) ? readdirSync(workflowsDir).filter((f) => /\.ya?ml$/.test(f)) : [];
 
   it('finds at least one workflow', () => {
     expect(workflows.length).toBeGreaterThan(0);
