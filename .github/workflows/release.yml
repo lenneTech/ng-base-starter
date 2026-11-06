@@ -15,8 +15,11 @@ jobs:
         with:
           fetch-depth: 3
 
+      # The notes are the lines this release commit added to CHANGELOG.md. Both sides get a final newline first:
+      # Markdown ends without one here (.editorconfig), so a last line that gains one in the release commit (the
+      # intro, on the first release) would otherwise count as changed and open the notes.
       - name: Create release notes
-        run: diff --changed-group-format='%>' --unchanged-group-format='' <( git show HEAD~1:CHANGELOG.md ) CHANGELOG.md > RELEASE_NOTES.md || true
+        run: diff --changed-group-format='%>' --unchanged-group-format='' <( git show HEAD~1:CHANGELOG.md; echo ) <( cat CHANGELOG.md; echo ) > RELEASE_NOTES.md || true
 
       - uses: ncipollo/release-action@v1
         with:
