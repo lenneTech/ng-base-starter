@@ -27,11 +27,27 @@ function cliRulesTemplate(): string {
   return readFileSync(join(schematics, 'ai-config', 'files', '__bestPracticesName__.template'), 'utf8');
 }
 
+/**
+ * The text without the URL block `lt dev` writes into a generated project (`<!-- lt-dev:url-block:start -->` …
+ * `<!-- lt-dev:url-block:end -->`, with its surrounding blank lines). lt CLI 1.57.0 writes it into CLAUDE.md only,
+ * from 1.57.1 into both files; either way the rest has to be the same.
+ */
+function withoutLtDevUrlBlock(text: string): string {
+  return text.replace(/\n*<!-- lt-dev:url-block:start -->[\s\S]*?<!-- lt-dev:url-block:end -->\n*/g, '\n');
+}
+
 describe('agent docs', () => {
   const claude = readFileSync(join(ROOT, 'CLAUDE.md'), 'utf8');
 
-  it('CLAUDE.md and AGENTS.md are identical', () => {
-    expect(claude).toBe(readFileSync(join(ROOT, 'AGENTS.md'), 'utf8'));
+  it('CLAUDE.md and AGENTS.md carry the same text (apart from the URL block of `lt dev`)', () => {
+    expect(withoutLtDevUrlBlock(claude)).toBe(withoutLtDevUrlBlock(readFileSync(join(ROOT, 'AGENTS.md'), 'utf8')));
+  });
+
+  it('tolerates the URL block of `lt dev` in one file only, and nothing else (self-test)', () => {
+    const block = '<!-- lt-dev:url-block:start -->\n## Local URLs\n\n- App: https://x.localhost\n<!-- lt-dev:url-block:end -->';
+    const text = '# Title\n\nRules.\n';
+    expect(withoutLtDevUrlBlock(`${text}\n${block}\n`)).toBe(withoutLtDevUrlBlock(text));
+    expect(withoutLtDevUrlBlock(`${text}\n${block}\n`)).not.toBe(withoutLtDevUrlBlock('# Title\n\nOther rules.\n'));
   });
 
   it('start with the source line and the Angular CLI rules file verbatim, followed by the stack section', () => {
