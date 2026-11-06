@@ -76,9 +76,8 @@ async function registerUser(page: Page, user: { email: string; name: string; pas
  */
 async function storedSettings(page: Page): Promise<{ mcpConfirmation: boolean; mcpConfirmationEnforced: boolean }> {
   const jwtCookie = (await page.context().cookies()).find((cookie) => cookie.name.endsWith('-jwt-token'));
-  // ng-base 22.0.1 writes the token raw; 22.0.0 wrote it JSON-quoted (`"eyJ…"`).
-  const raw = jwtCookie ? decodeURIComponent(jwtCookie.value) : '';
-  const jwt = raw.startsWith('"') ? (JSON.parse(raw) as string) : raw;
+  // ng-base writes the token raw (from 22.0.1; 22.0.0 wrote it JSON-quoted), URL-encoded as every cookie value.
+  const jwt = jwtCookie ? decodeURIComponent(jwtCookie.value) : '';
   const response = await page.request.get(`${API_BASE}/ai/settings`, jwt ? { headers: { authorization: `Bearer ${jwt}` } } : {});
   expect(response.ok(), `GET ${API_BASE}/ai/settings failed with ${response.status()}`).toBeTruthy();
   return response.json();
