@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file. The 14.x line (Angular 14, `@nguniversal`, Bootstrap) ends
 with version 14.34.0 at commit `7b85967` (last tag `v14.0.1`); its history stays in Git.
 
+### [22.0.3](https://github.com/lenneTech/ng-base-starter/compare/v22.0.2...v22.0.3) (2026-11-07)
+
+### Highlights for adopters
+
+- **A quiet app log behind the reverse proxy.** Behind Traefik (TurboOps) and Caddy (`lt dev`) every request carries `X-Forwarded-*` headers, which SSR used to drop with a two-line warning each: ten lines per request in the app log and in the `lt dev` terminal. SSR now trusts `X-Forwarded-Host` and `X-Forwarded-Proto`, so it sees the public `https://` URL, and the other forwarded headers are removed before rendering. `NG_TRUST_PROXY_HEADERS` (comma separated, Angular's own variable) replaces the trusted list.
+- **A forwarded host must be an allowed host.** Angular checks `X-Forwarded-Host` against the same allowed hosts as `Host` (the host of `NG_PUBLIC_SITE_URL`, `NG_ALLOWED_HOSTS`, the local names in `angular.json`) and answers 400 to any other. TurboOps and `lt dev` set it to the public host and need nothing. A proxy that rewrites `Host` to an internal name sets `NG_TRUST_PROXY_HEADERS=x-forwarded-proto`, so `Host` stays the only host SSR sees.
+- **No late analytics start after the app is gone.** The lazily loaded Plausible tracker no longer starts once the app was destroyed while it loaded, which ended in an `ObjectUnsubscribedError`; its spec no longer fails under the load of `pnpm run check`.
+
+### Bug Fixes
+
+- **server:** trust the proxy's forwarded host and scheme during SSR ([b3573fe](https://github.com/lenneTech/ng-base-starter/commit/b3573fec3a36298be7daabe3c650240517aef6ef))
+- **analytics:** start no tracker once the app is gone ([a7ee2f4](https://github.com/lenneTech/ng-base-starter/commit/a7ee2f4138dbb57570c514535cc63365af0b2f95))
+
 ### [22.0.2](https://github.com/lenneTech/ng-base-starter/compare/v22.0.1...v22.0.2) (2026-11-07)
 
 ### Highlights for adopters
