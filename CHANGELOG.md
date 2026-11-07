@@ -3,6 +3,21 @@
 All notable changes to this project are documented in this file. The 14.x line (Angular 14, `@nguniversal`, Bootstrap) ends
 with version 14.34.0 at commit `7b85967` (last tag `v14.0.1`); its history stays in Git.
 
+### [22.0.4](https://github.com/lenneTech/ng-base-starter/compare/v22.0.3...v22.0.4) (2026-11-07)
+
+### Highlights for adopters
+
+- **The starter carries the version of the ng-base it pins.** From this release on, `version` equals the exactly pinned `@lenne.tech/ng-base` version, every ng-base release gets a starter release with the same number, and changes to the starter alone ship with the next one (README, `CLAUDE.md`). v22.0.3 (with ng-base 22.0.2) is the one exception; ng-base skipped 22.0.3 for it. A project generated from the starter keeps a version of its own.
+- **`@lenne.tech/ng-base` 22.0.4.** No change for apps: ng-base is now published through npm Trusted Publishing, still with provenance.
+
+### Documentation
+
+- the starter carries the version of the ng-base it pins ([0d298aa](https://github.com/lenneTech/ng-base-starter/commit/0d298aa29ff278cbbfb307c21fbe1c8ca1837be4))
+
+### Build System
+
+- **deps:** pin @lenne.tech/ng-base 22.0.4 ([16c94c3](https://github.com/lenneTech/ng-base-starter/commit/16c94c3071938206d6554f2396fa1758e3aeab4f))
+
 ### [22.0.3](https://github.com/lenneTech/ng-base-starter/compare/v22.0.2...v22.0.3) (2026-11-07)
 
 ### Highlights for adopters
