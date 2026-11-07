@@ -11,6 +11,9 @@
  * Checked on `history.state` too, not only on `location.href`: vue-router writes the location it
  * knows into `back` and `current`, and a check of the address bar alone misses that.
  *
+ * The page also fits a 320 px screen (WCAG 1.4.10, reflow), with and without the address: the resend label, countdown
+ * included, is the widest thing on it.
+ *
  * Prerequisites: see `docs/e2e-auth.md`. Skips without e-mail verification on the API.
  */
 import type { Page } from '@playwright/test';
@@ -36,6 +39,16 @@ async function expectNoSecrets(page: Page, ...secrets: string[]): Promise<void> 
   for (const secret of secrets) {
     expect(seen).not.toContain(secret);
     expect(seen).not.toContain(encodeURIComponent(secret));
+  }
+}
+
+/** WCAG 1.4.10 (reflow): at 320 CSS px nothing on the page scrolls sideways. */
+async function expectFitsNarrowScreen(page: Page): Promise<void> {
+  const viewport = page.viewportSize();
+  await page.setViewportSize({ height: 640, width: 320 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth), 'page width at a 320 px viewport').toBeLessThanOrEqual(320);
+  if (viewport) {
+    await page.setViewportSize(viewport);
   }
 }
 
@@ -84,6 +97,10 @@ test.describe.serial('verify-email keeps the address and the token out of the UR
     await page.reload();
     await expect(page.getByText(user.email)).toBeVisible();
     await expectNoSecrets(page, user.email);
+
+    // The resend button with its countdown (`… erneut senden (60s)`) wraps on a narrow phone instead of widening the card.
+    await expect(page.getByRole('button', { name: /Bestätigungs-E-Mail erneut senden \(\d+s\)/ })).toBeVisible();
+    await expectFitsNarrowScreen(page);
   });
 
   test('the link from the mail loses token and address on arrival, and a reload still confirms', async ({ page }) => {
@@ -151,4 +168,12 @@ test.describe.serial('verify-email keeps the address and the token out of the UR
     // The typed address stays in the form: not in the history entry either, whatever key it might take.
     expect(await page.evaluate(() => JSON.stringify(window.history.state))).not.toContain(user.email);
   });
+});
+
+test('verify-email without an address fits a 320 px screen too (the address form)', async ({ page }) => {
+  test.skip(!available, 'Servers not running');
+
+  await gotoAndWaitForHydration(page, '/auth/verify-email');
+  await expect(page.getByRole('textbox', { name: 'E-Mail-Adresse' })).toBeVisible();
+  await expectFitsNarrowScreen(page);
 });

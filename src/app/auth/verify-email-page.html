@@ -31,7 +31,7 @@
           <p class="mt-2 text-sm text-muted-foreground">
             Wir haben eine Bestätigungs-E-Mail an
             @if (email()) {
-              <strong>{{ email() }}</strong>
+              <strong class="wrap-anywhere">{{ email() }}</strong>
             } @else {
               <span>deine E-Mail-Adresse</span>
             }
@@ -54,7 +54,7 @@
 
       @if (maskedEmail()) {
         <p class="text-center text-sm text-muted-foreground" role="status">
-          Neue E-Mail angefordert für <strong>{{ maskedEmail() }}</strong>
+          Neue E-Mail angefordert für <strong class="wrap-anywhere">{{ maskedEmail() }}</strong>
         </p>
       }
 
@@ -73,13 +73,16 @@
                 aria-describedby="verify-email-address-error"
               />
             </lt-form-field>
-            <button hlmBtn type="submit" class="w-full" [disabled]="cooldown.remaining() > 0 || resending()">{{ resendLabel() }}</button>
+            <!-- Wraps on a narrow phone (320 px) instead of widening the card: the label with its countdown is the widest thing here. -->
+            <button hlmBtn type="submit" class="h-auto min-h-9 w-full py-1.5 whitespace-normal" [disabled]="cooldown.remaining() > 0 || resending()">
+              {{ resendLabel() }}
+            </button>
           </form>
         } @else {
           <button
             hlmBtn
             type="button"
-            class="w-full"
+            class="h-auto min-h-9 w-full py-1.5 whitespace-normal"
             [variant]="cooldown.remaining() > 0 ? 'outline' : verifyError() ? 'default' : 'outline'"
             [disabled]="cooldown.remaining() > 0 || resending()"
             (click)="resend()"
