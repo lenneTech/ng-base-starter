@@ -63,7 +63,7 @@
     "@angular/router": "22.2.4",
     "@angular/ssr": "22.2.6",
     "@better-auth/passkey": "1.7.16",
-    "@lenne.tech/ng-base": "22.0.1",
+    "@lenne.tech/ng-base": "22.0.2",
     "@ng-icons/core": "36.1.0",
     "@ng-icons/lucide": "36.1.0",
     "@ng-icons/simple-icons": "36.1.0",
