@@ -166,7 +166,7 @@ browser: `NG_PUBLIC_API_URL` or the `/api` proxy). Starter values beside ng-base
 | `NG_PUBLIC_SITE_URL`                                                 | public          | canonical URL, origin of auth mail links, extra allowed SSR host. Required in production |
 | `NG_PUBLIC_API_URL` / `NG_API_URL`                                   | public / server | API URL for the browser / for SSR                                                        |
 | `NG_PUBLIC_API_PROXY`                                                | public          | browser calls go through `/api` (classic local mode)                                     |
-| `NG_PUBLIC_APP_ENV`                                                  | public          | stage label; anything but `production` makes the site noindex                            |
+| `NG_PUBLIC_APP_ENV`                                                  | public          | stage label; non-`production` is noindex, `local` adds the no-SMTP hint on verify-email  |
 | `NG_PUBLIC_APP_COMMIT` (fallback `APP_VERSION_COMMIT`)               | public          | build identity for `/app/admin/system`                                                   |
 | `NG_PUBLIC_STORAGE_PREFIX`, `NG_PUBLIC_COOKIE_PREFIX`                | public          | storage namespace, backend cookie prefix                                                 |
 | `NG_PUBLIC_PLAUSIBLE_API_HOST`                                       | public          | analytics host; empty means no tracker at all                                            |

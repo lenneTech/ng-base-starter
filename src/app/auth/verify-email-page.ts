@@ -67,6 +67,12 @@ export class VerifyEmailPage {
   private readonly deadToken = signal('');
   /** The address the new mail went to, as the server masked it (`k***@example.com`). */
   protected readonly maskedEmail = signal('');
+  /**
+   * Locally the API usually has no SMTP: it sends no mail and logs the link (`[EMAIL VERIFICATION]`), so the waiting
+   * page says where to look. Only on `NG_PUBLIC_APP_ENV=local`, which `.env.example` sets; any other value or none at
+   * all leaves the page as on a deployed stage (fails closed).
+   */
+  protected readonly localStage = this.runtimeConfig.appEnv === 'local';
 
   /** Back to the login, with the deep link of the sign-in this page interrupts. */
   protected readonly loginQuery = this.redirect !== null ? { redirect: safeRedirectTarget(this.redirect) } : {};

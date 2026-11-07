@@ -51,6 +51,8 @@ const READABLE = `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ email: 'ma
 const RATE_LIMIT_DE = 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.';
 
 interface Options {
+  /** `NG_PUBLIC_APP_ENV` as the runtime config carries it (`appEnv`); unset when absent. */
+  appEnv?: string;
   /** What `GET /iam/features` answers; `null` lets the request fail. */
   features?: null | Record<string, unknown>;
   /** The URL query the page is opened with. */
@@ -110,7 +112,7 @@ async function renderPage(options: Options = {}) {
       { provide: LtAuthService, useValue: { features, fetchFeatures, sendVerificationEmail, verifyEmail } },
       { provide: LtApiUrlService, useValue: { buildUrl: (path: string) => `${API}${path}` } },
       { provide: LT_FETCH, useValue: fetch },
-      { provide: LT_RUNTIME_CONFIG, useValue: { apiUrl: API, siteUrl: SITE_URL } },
+      { provide: LT_RUNTIME_CONFIG, useValue: { apiUrl: API, siteUrl: SITE_URL, ...(options.appEnv === undefined ? {} : { appEnv: options.appEnv }) } },
       {
         provide: LtToastService,
         useValue: {
@@ -135,6 +137,7 @@ async function renderPage(options: Options = {}) {
   /** The button whose label starts with `label`. */
   const button = (label: string) => [...root.querySelectorAll('button')].find((element) => element.textContent?.trim().startsWith(label));
   const form = (): HTMLFormElement | null => root.querySelector('form');
+  const localNotice = () => [...root.querySelectorAll('lt-notice')].find((notice) => notice.textContent?.includes('Lokal ohne SMTP'));
 
   return {
     button,
@@ -148,6 +151,13 @@ async function renderPage(options: Options = {}) {
     },
     fetchFeatures,
     form,
+    /** Title and text of the notice that says where the link is locally, whitespace collapsed; `undefined` without one. */
+    localHint: () => {
+      const notice = localNotice();
+      const part = (slot: string) => (notice?.querySelector(`[data-slot="${slot}"]`)?.textContent ?? '').replace(/\s+/g, ' ').trim();
+      return notice ? { text: part('alert-description'), title: part('alert-title') } : undefined;
+    },
+    localNotice,
     memory: () => recallVerifyEmail(window.history.state),
     /** The query of the URL the router holds now. */
     query: () => router.parseUrl(router.url).queryParams,
@@ -350,5 +360,50 @@ describe('verify-email without a link', () => {
     expect(page.form()).not.toBeNull();
     // The field shows the first message of its schema.
     expect((await page.submit(''))[0]).toBe('Bitte gib deine E-Mail-Adresse ein.');
+  });
+});
+
+describe('verify-email on a local stage, where the API sends no mail (DEV-4131)', () => {
+  // Without SMTP the link stands only in the API terminal, in the log line `[EMAIL VERIFICATION]`. The page says so on
+  // `NG_PUBLIC_APP_ENV=local` alone (what `.env.example` sets), and stays as it is on every other stage.
+  const HINT = { text: 'Den Bestätigungslink findest du im API-Terminal unter [EMAIL VERIFICATION].', title: 'Lokal ohne SMTP' };
+
+  it('says where the link is while the page waits for the mail, and still after a new one was sent', async () => {
+    const page = await renderPage({ appEnv: 'local', features: BY_TOKEN, state: verifyEmailState('max@test.com') });
+
+    expect(page.text()).toContain('E-Mail bestätigen');
+    expect(page.localHint()).toEqual(HINT);
+    await page.click('Bestätigungs-E-Mail erneut senden');
+    expect(page.sendVerificationEmail).toHaveBeenCalledOnce();
+    expect(page.localHint()).toEqual(HINT);
+  });
+
+  it('says it right after sign-up, and to a visitor it knows no address of', async () => {
+    expect((await renderPage({ appEnv: 'local', query: { fromRegister: 'true' }, state: verifyEmailState('max@test.com') })).localHint()).toEqual(HINT);
+    expect((await renderPage({ appEnv: 'local' })).localHint()).toEqual(HINT);
+  });
+
+  it('sets the name of the log line as code', async () => {
+    const page = await renderPage({ appEnv: 'local' });
+
+    expect(page.localNotice()?.querySelector('code')?.textContent).toBe('[EMAIL VERIFICATION]');
+  });
+
+  it.each([
+    ['an accepted link', { query: { token: SEALED } }, 'E-Mail bestätigt'],
+    ['a refused link', { features: BY_TOKEN, query: { token: SEALED }, verify: REFUSED }, 'Verifizierung fehlgeschlagen'],
+  ])('says nothing about the terminal after %s', async (_label, options: Options, heading) => {
+    const page = await renderPage({ appEnv: 'local', ...options });
+
+    expect(page.text()).toContain(heading);
+    expect(page.localHint()).toBeUndefined();
+  });
+
+  it.each([['production'], ['develop'], ['test'], [''], ['Local'], [undefined]])('stays as it is on the stage %j (fails closed)', async (appEnv) => {
+    const page = await renderPage({ appEnv, features: BY_TOKEN, state: verifyEmailState('max@test.com') });
+
+    expect(page.text()).toContain('E-Mail bestätigen');
+    expect(page.text()).not.toContain('API-Terminal');
+    expect(page.localHint()).toBeUndefined();
   });
 });

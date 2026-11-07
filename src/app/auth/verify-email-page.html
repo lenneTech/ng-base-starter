@@ -39,6 +39,11 @@
           </p>
           <p class="mt-2 text-sm text-muted-foreground">Bitte klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.</p>
         </div>
+        @if (localStage) {
+          <lt-notice class="w-full" variant="info" title="Lokal ohne SMTP">
+            <p>Den Bestätigungslink findest du im API-Terminal unter <code>[EMAIL VERIFICATION]</code>.</p>
+          </lt-notice>
+        }
         <lt-notice class="w-full" variant="neutral" title="Keine E-Mail erhalten?">
           <ul class="mt-1 list-inside list-disc text-sm">
             <li>Prüfe deinen Spam-Ordner</li>
