@@ -72,6 +72,13 @@ docker run -p 3001:3000 -e NG_PUBLIC_SITE_URL=… -e NG_PUBLIC_API_URL=… app
 
 The image is non-root, listens on 3000 and has a health check on `/`.
 
+## Versioning
+
+The starter's version always equals the `@lenne.tech/ng-base` version it pins: every ng-base release gets a starter
+release with the same number (tag `vX.Y.Z` and a GitHub release). Changes to the starter alone land on `main` and ship
+with the next ng-base release. The one exception is v22.0.3, which pins ng-base 22.0.2; ng-base skipped 22.0.3, and
+from 22.0.4 on both match. A project generated from the starter has a version of its own.
+
 ## More
 
 - `CLAUDE.md` / `AGENTS.md`: structure, rules and conventions (for people and coding agents)

@@ -250,6 +250,30 @@ Admin check: `roles` contains `admin` or `role === 'admin'`.
 - `tests/e2e/helpers/auth-backend.ts` deletes test users directly in MongoDB and refuses any non-loopback URI
   (`LOOPBACK_URI`, identical to the Nuxt template; `E2E_ALLOW_REMOTE_DB=true` only in CI).
 
+## Versioning of this template
+
+The starter follows ng-base, release for release (owner rule, Kai, 2026-11-07, the same as nest-server-starter's):
+
+1. **Same number.** `version` in `package.json` equals the exactly pinned `@lenne.tech/ng-base` version.
+2. **Every ng-base version gets its starter version.** Each ng-base version published to npm is followed by a starter
+   release with that number (`chore(release): X.Y.Z`, tag `vX.Y.Z`, GitHub release), also when the bump is the only
+   change.
+3. **Nothing else changes the version.** Starter changes between two ng-base releases are committed to `main` with a
+   normal message and leave `version` as it is: no patch bump, no starter-only release, no tag. They ship with the
+   next ng-base release.
+
+One exception predates the rule: v22.0.3 pins ng-base 22.0.2. ng-base skipped 22.0.3 for it, and from 22.0.4 on both
+carry the same number.
+
+The rule does **not** apply to projects generated from this starter: they carry their own version and upgrade ng-base
+on their own schedule, so the two fields differ there by design. That is also why `pnpm run check` has no guard for it
+(the check travels into every generated project). Verify by hand before a release commit here:
+
+```bash
+node -e "const p=require('./package.json');process.exit(p.version===p.dependencies['@lenne.tech/ng-base']?0:1)" \
+  && echo "version matches" || echo "MISMATCH"
+```
+
 ## Angular CLI MCP
 
 `.mcp.json` registers the project's own Angular CLI as MCP server (`npx ng mcp`, the pinned version, no registry
