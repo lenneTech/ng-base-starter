@@ -171,6 +171,7 @@ browser: `NG_PUBLIC_API_URL` or the `/api` proxy). Starter values beside ng-base
 | `NG_PUBLIC_STORAGE_PREFIX`, `NG_PUBLIC_COOKIE_PREFIX`                | public          | storage namespace, backend cookie prefix                                                 |
 | `NG_PUBLIC_PLAUSIBLE_API_HOST`                                       | public          | analytics host; empty means no tracker at all                                            |
 | `NG_ALLOWED_HOSTS`                                                   | server          | extra host names the SSR engine accepts (Angular answers 400 to any other `Host`)        |
+| `NG_TRUST_PROXY_HEADERS`                                             | server          | proxy headers SSR trusts (default `x-forwarded-host,x-forwarded-proto`); others dropped  |
 | `NG_PUBLIC_LT_BUG_ENABLED`                                           | public          | bug.lt reporter on/off per stage; default: on outside production, off without a stage    |
 | `NG_LINEAR_API_KEY`, `NG_LINEAR_TEAM_NAME`, `NG_LINEAR_PROJECT_NAME` | server          | Linear target of the bug.lt reports (`ltBugReport()` in `src/server.ts`)                 |
 
@@ -232,6 +233,9 @@ Admin check: `roles` contains `admin` or `role === 'admin'`.
 
 - Security headers, HTML `Cache-Control: private, no-cache` + `Vary: Cookie`, `X-Robots-Tag` for `/app`, `/auth`,
   `/admin`: `src/server.ts`. No Content-Security-Policy by design (see `docs/security-headers.md`).
+- Behind the reverse proxy SSR trusts `X-Forwarded-Host` and `X-Forwarded-Proto` by default
+  (`src/server/proxy-headers.ts`). Angular checks the forwarded host against the allowed hosts like `Host` (400
+  otherwise); the other forwarded headers are dropped.
 - Overrides and audit suppressions live in `pnpm-workspace.yaml`, each with its reason, measurement and delete
   condition. Targets are fixed versions. `check-overrides`/`check-suppressions` (part of `check`) fail an entry that
   stopped being load-bearing.

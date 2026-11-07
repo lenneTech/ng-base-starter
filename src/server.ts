@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { version } from '../package.json';
 import { resolveAllowedHosts } from './server/allowed-hosts';
 import { resolveListenAddress } from './server/listen-address';
+import { dropUntrustedProxyHeaders, resolveTrustProxyHeaders } from './server/proxy-headers';
 import { buildRobotsTxt, buildSitemapXml, robotsTagFor } from './server/seo-routes';
 import { starterRuntimeConfig } from './server/starter-runtime-config';
 
@@ -20,6 +21,8 @@ import { starterRuntimeConfig } from './server/starter-runtime-config';
  * - `POST /_bug-lt/report` for the bug.lt reporter outside production (`ltBugReport()`, Linear credentials server-only);
  * - robots.txt, sitemap.xml and `X-Robots-Tag` for `/app`, `/auth`, `/admin` (`src/server/seo-routes.ts`);
  * - the `/api/*` proxy to the API, only with `NG_PUBLIC_API_PROXY=true` (classic local mode);
+ * - behind the reverse proxy, SSR believes `X-Forwarded-Host` (checked against the allowed hosts) and
+ *   `X-Forwarded-Proto`, and the other forwarded headers are dropped before rendering (`src/server/proxy-headers.ts`);
  * - every other request rendered by Angular with the `NG_*` runtime config of THIS request: handed to SSR as request
  *   context and written into the HTML as `<script id="ng-runtime-config">` (client-rendered routes too), HTML marked
  *   `Cache-Control: private, no-cache` + `Vary: Cookie`.
@@ -36,7 +39,10 @@ const browserDistFolder = join(import.meta.dirname, '../browser');
 export const app = express();
 app.disable('x-powered-by');
 
-const angularApp = new AngularNodeAppEngine({ allowedHosts: resolveAllowedHosts(process.env) });
+/** The forwarded headers SSR believes behind the reverse proxy (default: host and scheme, `src/server/proxy-headers.ts`). */
+const trustProxyHeaders = resolveTrustProxyHeaders(process.env);
+
+const angularApp = new AngularNodeAppEngine({ allowedHosts: resolveAllowedHosts(process.env), trustProxyHeaders });
 
 app.use(ltSecurityHeaders());
 
@@ -72,6 +78,12 @@ app.use(
     redirect: false,
   }),
 );
+
+/** The other forwarded headers go before rendering: Angular would drop them too, with two log lines each per request. */
+app.use((req, _res, next) => {
+  dropUntrustedProxyHeaders(req.headers, trustProxyHeaders);
+  next();
+});
 
 /** Everything else is rendered by Angular, with the runtime config of this request. */
 app.use(

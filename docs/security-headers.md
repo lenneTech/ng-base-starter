@@ -36,6 +36,21 @@ the Node server is plain HTTP, so the header is the only truth) with the connect
 fallback. It is never inferred from an env var — a misconfigured env is exactly the
 case that would poison a developer's browser.
 
+## Which forwarded headers SSR trusts
+
+The same proxies add `X-Forwarded-For`, `-Host`, `-Port`, `-Proto` and `-Server` to every
+request. Angular's SSR engine trusts none of them unless told to, and logs two lines for each
+one it drops, ten per request behind Traefik. `src/server.ts` therefore trusts the forwarded
+host and scheme (`src/server/proxy-headers.ts`) and drops the other forwarded headers before
+rendering, which the app never reads anyway.
+
+Trusting the forwarded host opens no new way in: Angular checks it against the same allowed
+hosts as the `Host` header (`NG_PUBLIC_SITE_URL`'s host, `NG_ALLOWED_HOSTS`, the local names in
+`angular.json`) and answers 400 to any other, and both proxies set it themselves instead of
+passing on what a client sent. `tests/e2e/ssr-proxy-headers.spec.ts` pins both. A setup whose
+proxy rewrites `Host` to an internal name sets `NG_TRUST_PROXY_HEADERS=x-forwarded-proto`, so
+`Host` stays the only host SSR sees.
+
 ## Checking them by hand
 
 Three ways to measure this wrong, all of them observed:
