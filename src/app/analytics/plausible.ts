@@ -1,5 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import { DOCUMENT, inject, PLATFORM_ID, provideAppInitializer, type EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
+import { DestroyRef, DOCUMENT, inject, PLATFORM_ID, provideAppInitializer, type EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
 import { Router } from '@angular/router';
 import { LT_RUNTIME_CONFIG } from '@lenne.tech/ng-base';
 
@@ -28,8 +28,10 @@ export function providePlausible(): EnvironmentProviders {
       }
       const router = inject(Router);
       const document = inject(DOCUMENT);
+      // The app may be gone by the time the chunks have loaded; `startPlausible` then starts nothing.
+      const destroyRef = inject(DestroyRef);
       // The tracker and the URL masks load only now (`plausible-start.ts`): no analytics code in the initial bundle.
-      void import('./plausible-start').then(({ startPlausible }) => startPlausible(apiHost, router, document));
+      void import('./plausible-start').then(({ startPlausible }) => startPlausible(apiHost, { destroyRef, document, router }));
     }),
   ]);
 }

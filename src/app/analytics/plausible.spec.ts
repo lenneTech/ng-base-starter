@@ -62,8 +62,13 @@ function preconnects(): Array<null | string> {
   return [...document.head.querySelectorAll('link[rel="preconnect"]')].map((link) => link.getAttribute('href'));
 }
 
-/** Boots the providers as the app does (`app.config.ts`), with `plausibleApiHost` in the runtime config, or no key at all. */
-async function start(plausibleApiHost: unknown, options: { href?: string; platform?: 'browser' | 'server' } = {}): Promise<void> {
+interface BootOptions {
+  href?: string;
+  platform?: 'browser' | 'server';
+}
+
+/** Configures the providers as the app does (`app.config.ts`), with `plausibleApiHost` in the runtime config, or no key at all. */
+function configure(plausibleApiHost: unknown, options: BootOptions = {}): void {
   visit(options.href ?? 'https://app.example/');
   TestBed.configureTestingModule({
     providers: [
@@ -73,12 +78,32 @@ async function start(plausibleApiHost: unknown, options: { href?: string; platfo
       providePlausible(),
     ],
   });
+}
+
+/**
+ * The initializer does not wait for the tracker: `plausible-start.ts` and the tracker load on demand, one import after
+ * the other. Resolves once both modules are loaded and what waited for them has run.
+ */
+async function lazyStartSettled(): Promise<void> {
+  await import('./plausible-start');
+  await import('@plausible-analytics/tracker');
+  await new Promise((resolve) => setTimeout(resolve));
+}
+
+/** Boots the app and lets the lazy start settle, for a case that expects no tracker. */
+async function boot(plausibleApiHost: unknown, options: BootOptions = {}): Promise<void> {
+  configure(plausibleApiHost, options);
   await TestBed.inject(ApplicationInitStatus).donePromise;
-  // The initializer does not wait for the tracker: `plausible-start.ts` and the tracker load on demand, one import after
-  // the other. Wait until the tracker was started, or long enough that a case expecting no start can say so.
-  for (let round = 0; round < 40 && tracker.init.mock.calls.length === 0; round++) {
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
+  await lazyStartSettled();
+}
+
+/**
+ * Boots the app and waits until the tracker was started. Under the load of `pnpm run check` the two imports take far
+ * longer than alone, so the wait is bounded by time, not by rounds (below the 5 s a test may take).
+ */
+async function start(plausibleApiHost: unknown, options: BootOptions = {}): Promise<void> {
+  await boot(plausibleApiHost, options);
+  await vi.waitFor(() => expect(tracker.init).toHaveBeenCalled(), { timeout: 4000 });
   await new Promise((resolve) => setTimeout(resolve));
 }
 
@@ -119,7 +144,7 @@ describe('providePlausible: whether the tracker starts', () => {
     ['a value that is no string', true],
     ['no key at all', undefined],
   ])('starts nothing with %s: no tracker, no pageview, no preconnect, never plausible.io', async (_label, apiHost) => {
-    await start(apiHost);
+    await boot(apiHost);
 
     expect(tracker.init).not.toHaveBeenCalled();
     expect(tracker.track).not.toHaveBeenCalled();
@@ -128,10 +153,25 @@ describe('providePlausible: whether the tracker starts', () => {
 
   // The Nuxt plugin is `plausible.client.ts`; here the provider itself checks the platform.
   it('starts nothing while the page is rendered on the server', async () => {
-    await start(HOST, { platform: 'server' });
+    await boot(HOST, { platform: 'server' });
 
     expect(tracker.init).not.toHaveBeenCalled();
     expect(tracker.track).not.toHaveBeenCalled();
+  });
+
+  // A test's TestBed, or an app destroyed while the tracker chunk still loads: the late start must not run into the
+  // router of an app that is gone (`ObjectUnsubscribedError` on `router.events`).
+  it('starts nothing once the app is destroyed before the tracker has loaded', async () => {
+    configure(HOST);
+    // Runs the initializer, which only begins to load `plausible-start.ts`; then the app goes away.
+    TestBed.inject(ApplicationInitStatus);
+    TestBed.resetTestingModule();
+
+    await lazyStartSettled();
+
+    expect(tracker.init).not.toHaveBeenCalled();
+    expect(tracker.track).not.toHaveBeenCalled();
+    expect(preconnects()).toEqual([]);
   });
 
   it('starts the tracker for an address set on the stage, and talks only to that server', async () => {
