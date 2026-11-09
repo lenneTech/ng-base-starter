@@ -1,6 +1,6 @@
 {
   "name": "ng-base-starter",
-  "version": "22.0.4",
+  "version": "22.0.5",
   "private": true,
   "description": "Angular 22 starter (SSR, Tailwind 4, @lenne.tech/ng-base) for lenne.Tech projects, scaffolded by the lt CLI (lt frontend angular / lt fullstack init --frontend angular).",
   "license": "MIT",

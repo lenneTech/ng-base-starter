@@ -3,6 +3,25 @@
 All notable changes to this project are documented in this file. The 14.x line (Angular 14, `@nguniversal`, Bootstrap) ends
 with version 14.34.0 at commit `7b85967` (last tag `v14.0.1`); its history stays in Git.
 
+### [22.0.5](https://github.com/lenneTech/ng-base-starter/compare/v22.0.4...v22.0.5) (2026-11-09)
+
+### Highlights for adopters
+
+- **No self sign-up? Close it in the API, not only in the app.** Deleting the registration page or its link removes the form, not the endpoint: `POST /iam/sign-up/email` stays open to anybody with a plain request. An invitation-only project sets `betterAuth.emailAndPassword.disableSignUp: true` in the API (from nest-server 12.3.0 it closes social sign-up too); `GET /iam/features` then reports `signUpEnabled: false`, the login page hides its "Registrieren" link and `/auth/register` sends visitors to the login, so the page can stay (README, auth rule 12 in `CLAUDE.md`).
+- **Latest dependencies, in step with nest-server-starter 12.8.4 and later.** Angular 22.2.5, better-auth and `@better-auth/passkey` 1.7.18 (the version nest-server-starter pins from 12.8.4 on; lt-monorepo's `check:workspace` allows one better-auth version per workspace), Tailwind CSS 4.3.5, `@playwright/test` 1.65.0 (lt-monorepo 3.18.5 runs the matching CI image `v1.65.0-noble`), oxlint 1.92.0, oxfmt 0.77.0. The initial bundle stays at 498.92 kB.
+- **`@lenne.tech/ng-base` 22.0.5.** Built and tested with Angular 22.2.5; nothing changes for apps.
+
+### Documentation
+
+- close self sign-up in the API, not only by removing the page ([7def9b1](https://github.com/lenneTech/ng-base-starter/commit/7def9b1e511ed67005e9d1f3f45fd79dab79e0d0))
+
+### Build System
+
+- **deps:** update @playwright/test to 1.65.0 ([57f0c21](https://github.com/lenneTech/ng-base-starter/commit/57f0c219d44918ae376f3909c3e91dc2ba72b19f))
+- **deps:** update Angular 22.2.5, better-auth 1.7.18, Tailwind 4.3.5 and the dev tooling ([6be21b1](https://github.com/lenneTech/ng-base-starter/commit/6be21b11e65a469e7261b55aca46c99fb6d7f9fd))
+- **deps:** pin @lenne.tech/ng-base 22.0.5 ([d2cc867](https://github.com/lenneTech/ng-base-starter/commit/d2cc86774ea0e54590f07e90b1d5839b90ffaedb))
+- **deps:** keep jsdom on 30.1.3, the Angular CLI 22.2.6 baseline ([ea09f24](https://github.com/lenneTech/ng-base-starter/commit/ea09f241caa39f1f7dbfc450f9c857fadc2ebe21))
+
 ### [22.0.4](https://github.com/lenneTech/ng-base-starter/compare/v22.0.3...v22.0.4) (2026-11-07)
 
 ### Highlights for adopters
