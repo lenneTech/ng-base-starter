@@ -225,6 +225,11 @@ Dialogs and other overlays: `provideLtUiOverlayDefaults()` sits in the `provider
 11. Setup: never show the form while `httpInitEnabled === false`; re-read the status after a 403. With the HTTP init
     closed, `ltSystemSetupGuard` does not redirect (`/` and the login stay reachable): whoever deploys a stage without
     users opens `/auth/setup` directly to see the hint; the API's boot log names the same variables.
+12. Removing the registration page does not close sign-up: `POST /iam/sign-up/email` stays open on the API, and
+    anybody can create an account with a plain request. A project without self sign-up sets
+    `betterAuth.emailAndPassword.disableSignUp: true` in the API's config (from nest-server 12.3.0 this covers social
+    providers too). `GET /iam/features` then reports `signUpEnabled: false`: the login page hides its "Registrieren"
+    link and `/auth/register` sends the visitor to the login.
 
 Route guards read the client-writable `lt-auth-state` cookie and are **UI gates only**; authorization is the API's job.
 Admin check: `roles` contains `admin` or `role === 'admin'`.

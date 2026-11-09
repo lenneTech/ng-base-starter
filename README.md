@@ -63,6 +63,13 @@ with screenshot and recent console/network activity in Linear. It needs the Line
 (`NG_LINEAR_API_KEY`, `NG_LINEAR_TEAM_NAME`, `NG_LINEAR_PROJECT_NAME`); `NG_PUBLIC_LT_BUG_ENABLED=true|false` overrides
 the stage rule, `NG_PUBLIC_LT_BUG_*` adjusts the button (see `.env.example`). Without `NG_PUBLIC_APP_ENV` it stays off.
 
+**No self sign-up? Close it in the API, not only in the app.** Deleting the registration page
+(`src/app/auth/register-page.*` and its route in `src/app/app.routes.ts`) or its link removes the form, not the
+endpoint: `POST /iam/sign-up/email` stays open, and anybody can create an account with a plain request. A project that
+is invitation-only sets `betterAuth.emailAndPassword.disableSignUp: true` in the API's config (nest-server; from 12.3.0
+it closes sign-up through social providers too). `GET /iam/features` then reports `signUpEnabled: false`, the login
+page hides its "Registrieren" link, and `/auth/register` sends visitors to the login, so the page can stay.
+
 ## Deploy
 
 ```bash

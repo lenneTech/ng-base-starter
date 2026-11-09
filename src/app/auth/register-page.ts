@@ -19,6 +19,10 @@ import { verifyEmailState } from './verify-email-memory';
  * (no hydration mismatch, no checkbox popping in after load). With sign-up disabled the page sends the visitor to the
  * login, in the browser only, so the toast that explains it reaches them. After sign-up: e-mail verification when it
  * is on, otherwise an automatic sign-in and the offer to add a passkey.
+ *
+ * Registration is disabled in the API, never here: `betterAuth.emailAndPassword.disableSignUp: true` makes
+ * `/iam/features` report `signUpEnabled: false`. Deleting this page instead leaves `POST /iam/sign-up/email` open to
+ * anybody with a plain request (README, "No self sign-up?").
  */
 @Component({
   imports: [FormField, FormRoot, HlmButton, HlmCheckbox, HlmInput, LtFormField, LtPageCard, LtPageCardFooter, LtPasswordInput, NgIcon, RouterLink],

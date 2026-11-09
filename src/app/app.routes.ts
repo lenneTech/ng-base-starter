@@ -25,6 +25,7 @@ export const routes: Routes = [
             loadComponent: () => import('./auth/login-page').then((m) => m.LoginPage),
             title: 'Anmeldung',
           },
+          // Removing this route leaves sign-up open in the API: close it there (README, "No self sign-up?").
           { path: 'register', loadComponent: () => import('./auth/register-page').then((m) => m.RegisterPage), title: 'Registrierung' },
           {
             path: 'forgot-password',
