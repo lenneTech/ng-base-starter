@@ -12,6 +12,7 @@ import { generateTestUser, gotoAndWaitForHydration } from '@lenne.tech/ng-base/t
 
 import { API_BASE, DEFAULT_FEATURES, type Features, FRONTEND_BASE, grantAdminRole, parseFeatures, resetTestData } from './helpers/auth-backend';
 import { loginWithEmail, registerUser } from './helpers/sign-in';
+import { dropSession } from './helpers/session';
 
 /** The API's `GET /meta`, directly or through the dev proxy (`/api/meta`); never the app's own `/api/build-identity`. */
 function isMetaRequest(url: URL): boolean {
@@ -51,7 +52,7 @@ test.describe('System page: the API does not report its build', () => {
     await resetTestData(admin.email);
     await registerUser(page, admin, features);
     await grantAdminRole(admin.email);
-    await page.context().clearCookies();
+    await dropSession(page);
     await loginWithEmail(page, admin.email, admin.password);
 
     let failMeta = true;

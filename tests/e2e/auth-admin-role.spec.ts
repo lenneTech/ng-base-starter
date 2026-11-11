@@ -19,6 +19,7 @@ import { generateTestUser, gotoAndWaitForHydration } from '@lenne.tech/ng-base/t
 
 import { API_BASE, DEFAULT_FEATURES, type Features, FRONTEND_BASE, grantAdminRole, parseFeatures, resetTestData } from './helpers/auth-backend';
 import { loginWithEmail, registerUser } from './helpers/sign-in';
+import { dropSession } from './helpers/session';
 
 /** A request of Better Auth's admin plugin, directly or through the dev proxy (`/api/iam/admin/…`). */
 function isAdminPluginRequest(url: string): boolean {
@@ -82,7 +83,7 @@ test.describe('Admin area: the role decides, the admin plugin stays silent', () 
 
     await test.step('with the admin role and a new sign-in: the admin pages open', async () => {
       await grantAdminRole(user.email);
-      await page.context().clearCookies();
+      await dropSession(page);
       await loginWithEmail(page, user.email, user.password);
 
       await gotoAndWaitForHydration(page, '/app/admin');
