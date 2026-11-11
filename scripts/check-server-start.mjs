@@ -30,8 +30,10 @@
  *      kernel discards a signal whose disposition is the default, so the process ends
  *      only when a shutdown handler closes the server and the event loop drains. Without
  *      the preload a missing handler would go unnoticed here, because outside a
- *      container the default disposition kills the process at once. Skipped on Windows,
- *      which delivers no SIGTERM. nest-server-starter and the Nuxt template carry the same step.
+ *      container the default disposition kills the process at once. The preload also
+ *      ends the server once the runner is gone (Ctrl-C, a watchdog), see `PID1_SIGNAL_PRELOAD`.
+ *      Skipped on Windows, which delivers no SIGTERM. nest-server-starter and the Nuxt
+ *      template carry the same step.
  *
  * Exit code: 0 when the server came up and rendered (and, with step 7, shut down
  * cleanly), 1 otherwise — boot timeout (`bootTimeoutMs`, default 60 s), early exit of
@@ -74,8 +76,19 @@ export function isRenderedStatus(status) {
  * or re-raises after its own handler ran, is swallowed instead of killing the process. The
  * process then ends only when the app closes everything that keeps the event loop alive.
  * Passed as a `data:` module so nothing is written to disk.
+ *
+ * A server that ignores both signals must not outlive the runner: a Ctrl-C reaches the whole
+ * process group, and a watchdog (lt-monorepo's `check`) SIGTERMs and then SIGKILLs the tree, so
+ * the runner can end before its `finally` stops the server, which then kept listening for hours,
+ * re-parented to init. The preload therefore also checks the parent every 250 ms and SIGKILLs the
+ * server once it has a new one. The timer is unref'd and keeps nothing alive, so the shutdown
+ * measurement is unchanged.
  */
-export const PID1_SIGNAL_PRELOAD = Object.freeze(['--import', 'data:text/javascript,process.on("SIGTERM",()=>{});process.on("SIGINT",()=>{});']);
+export const PID1_SIGNAL_PRELOAD = Object.freeze([
+  '--import',
+  'data:text/javascript,process.on("SIGTERM",()=>{});process.on("SIGINT",()=>{});' +
+    'const parent=process.ppid;setInterval(()=>{if(process.ppid!==parent)process.kill(process.pid,"SIGKILL")},250).unref();',
+]);
 
 /** Pure: whether the way a process ended counts as a clean shutdown — exit code 0, no signal. */
 export function isCleanShutdown(code, signal) {

@@ -1,0 +1,60 @@
+# Migration Guide: an interrupted `check` no longer leaves the server running
+
+22.1.0 added `--graceful-shutdown` to `scripts/check-server-start.mjs` ([guide](22.1.0-check-graceful-shutdown.md)).
+For that step the runner starts the built server with no-op SIGTERM and SIGINT listeners, so the server ignores both
+signals, as it would as PID 1 in a container. The runner itself stops the server in a `finally` block. If the runner
+ended first, nothing stopped the server. Two cases are common:
+
+- Ctrl-C during `check`: the terminal sends SIGINT to the whole process group. The runner died, and the server
+  ignored the signal.
+- A watchdog: lt-monorepo's `check` SIGTERMs a silent test step and SIGKILLs it five seconds later. In
+  `tests/unit/check-server-start.test.ts`, the case `returns 1 when the server has no shutdown handler` then left
+  `no-shutdown.mjs` running.
+
+The server was re-parented to init and kept listening on its random port until somebody killed it by hand. One such
+leftover was found four hours after the run.
+
+The preload now also checks the server's parent every 250 ms. Once the parent is gone, the server SIGKILLs itself. The
+timer is unref'd and keeps nothing alive, so it does not change the shutdown measurement.
+
+| Project                                                          | What to do |
+| ---------------------------------------------------------------- | ---------- |
+| Took over `scripts/check-server-start.mjs` with 22.1.0           | Steps 1-2  |
+| Has no `--graceful-shutdown` in its check chains, or its own one | Nothing    |
+
+No dependency and no API change are needed.
+
+## Upgrade steps (existing project)
+
+In an `lt fullstack` monorepo, the steps happen in `projects/app/`.
+
+### 1. Take over the script and its test
+
+Copy `scripts/check-server-start.mjs` and `tests/unit/check-server-start.test.ts`. If you changed the script, take
+over only `PID1_SIGNAL_PRELOAD`:
+
+```js
+export const PID1_SIGNAL_PRELOAD = Object.freeze([
+  '--import',
+  'data:text/javascript,process.on("SIGTERM",()=>{});process.on("SIGINT",()=>{});' +
+    'const parent=process.ppid;setInterval(()=>{if(process.ppid!==parent)process.kill(process.pid,"SIGKILL")},250).unref();',
+]);
+```
+
+The test file adds two cases under `check-server-start does not leave the server behind`: SIGINT to the runner's
+process group, and SIGKILL to the runner. In both, the server's port has to close within 3 s.
+
+### 2. Remove leftovers from earlier runs
+
+On macOS and Linux, list servers that an interrupted run left behind:
+
+```bash
+ps -A -ww -o pid=,ppid=,command= | grep 'process.on("SIGTERM",()=>{})' | grep -v grep
+```
+
+Rows with parent `1` are leftovers. Stop each one with `kill -9 <pid>`.
+
+## Check it
+
+`pnpm test` passes the two new cases. Start `NG_OUTPUT_DIR=.output-check node scripts/check-server-start.mjs
+--graceful-shutdown=10` after a build and press Ctrl-C while it runs. The listing from step 2 then shows no new row.
