@@ -276,13 +276,10 @@ One exception predates the rule: v22.0.3 pins ng-base 22.0.2. ng-base skipped 22
 carry the same number.
 
 The rule does **not** apply to projects generated from this starter: they carry their own version and upgrade ng-base
-on their own schedule, so the two fields differ there by design. That is also why `pnpm run check` has no guard for it
-(the check travels into every generated project). Verify by hand before a release commit here:
-
-```bash
-node -e "const p=require('./package.json');process.exit(p.version===p.dependencies['@lenne.tech/ng-base']?0:1)" \
-  && echo "version matches" || echo "MISMATCH"
-```
+on their own schedule, so the two fields differ there by design. `tests/unit/starter-version.test.ts` (part of
+`check`) fails when `version` and the pin differ, and runs only where `origin` is `lenneTech/ng-base-starter`: a
+generated project starts without the starter's `.git` (the same test as the Nuxt template's
+`scripts/starter-version.test.mjs`).
 
 ## Angular CLI MCP
 
