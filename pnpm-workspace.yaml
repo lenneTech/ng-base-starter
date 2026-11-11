@@ -65,9 +65,13 @@ peerDependencyRules:
 # Method for every entry (2026-11-06, first resolve of the Angular 22 tree): fresh `pnpm install`,
 # `pnpm audit`; only an entry whose package shows up there was added. Without the entries `pnpm audit`
 # reports js-yaml (three highs), postcss-selector-parser, glob and minimatch.
+#
+# The glob entry, `rimraf>glob@<14.0.2`, went on 2026-11-11: rimraf 6.1.4 requests glob ^14.0.3 itself,
+# `check-overrides.mjs` reported the entry as matching nothing, and fresh resolves with and without it
+# came out identical and audit-clean. Same removal as the nuxt-base-template (2026-11-09).
 overrides:
   # minimatch 11 for the eslint chain that lints the Angular templates (angular-eslint 22.6.0 →
-  # eslint 10.14.0, @eslint/config-array 0.23.5, @typescript-eslint/typescript-estree 8.72.1). Each is
+  # eslint 10.14.0, @eslint/config-array 0.23.5, @typescript-eslint/typescript-estree 8.72.2). Each is
   # on its newest release and requests minimatch ^10, vulnerable to GHSA-g3hv-75wg-m249 (moderate, DoS
   # through globparts amplification, first patched 11.0.1). minimatch 11 dropped `makeRe()` and
   # `Minimatch#regexp`; none of the three calls them. Read 2026-11-06: eslint (`lib/eslint/
@@ -76,9 +80,13 @@ overrides:
   # unchanged in 11. Scoped per consumer, never a bare `minimatch@<11.0.1`: in an lt-monorepo that would
   # also reach api consumers that may need `makeRe()`. Drop each entry once its consumer requests
   # minimatch >=11.0.1 itself; `check-overrides.mjs` reports it.
-  '@eslint/config-array>minimatch@<11.0.1': 11.0.4
-  '@typescript-eslint/typescript-estree>minimatch@<11.0.1': 11.0.4
-  'eslint>minimatch@<11.0.1': 11.0.4
+  # Target raised 11.0.4 -> 11.0.5 on 2026-11-11: glob 14.0.4 (under rimraf) requests minimatch ^11.0.5,
+  # so the tree keeps exactly one minimatch; 11.0.5 also bounds the glob-split expansion. 11.0.6 to
+  # 11.0.8 (11.0.7: quadratic compile time for long wildcard patterns, a regression since 11.0.0) were
+  # still inside the one-day release-age window that day.
+  '@eslint/config-array>minimatch@<11.0.1': 11.0.5
+  '@typescript-eslint/typescript-estree>minimatch@<11.0.1': 11.0.5
+  'eslint>minimatch@<11.0.1': 11.0.5
   # js-yaml quadratic CPU consumption via YAML merge-key chains (GHSA-52cp-r559-cp3m, GHSA-5p4m-2wfm-xmqj,
   # GHSA-2883-xcg3-v3hh, all high, patched >=4.3.2). Transitive via @hey-api/openapi-ts >
   # @hey-api/json-schema-ref-parser, whose newest release pins js-yaml EXACTLY at 4.2.0, so no bump can
@@ -89,8 +97,9 @@ overrides:
   # newest), which pins it EXACTLY at 6.0.10. Same major on purpose; the Nuxt template measured the
   # typography CSS byte-identical between 6.0.10 and 6.1.5 (2026-10-28). Build tooling only, not in
   # `.output/`. Drop once @tailwindcss/typography requests >=6.1.5 itself.
-  'postcss-selector-parser@<6.1.5': 6.1.5
-  # glob 14 for rimraf (glob ^13, `glob`/`globSync` behind `--glob`): GHSA-3g3m-2fjr-6pw4 (glob >=9.0.0
-  # <=14.0.1, moderate, first patched 14.0.2). Same entry and measurement as the nuxt-base-template
-  # (rimraf `--glob` identical on glob 13 and 14). Drop once rimraf requests glob >=14.0.2 itself.
-  'rimraf>glob@<14.0.2': 14.0.3
+  # Target raised 6.1.5 -> 6.1.6 on 2026-11-11 (the key stays below the first patched version): 6.1.6
+  # removes three more quadratic parser paths (consecutive parenthesis groups, comment-only selectors,
+  # digit-prefixed words) and inlines cssesc. Measured: Tailwind 4.3.5 compiled the typography plugin
+  # (every prose class, size, gray scale, invert, element modifier) byte-identical under 6.1.5 and 6.1.6
+  # (102,514 bytes, one SHA-256).
+  'postcss-selector-parser@<6.1.5': 6.1.6

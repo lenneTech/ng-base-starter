@@ -1,6 +1,6 @@
 {
   "name": "ng-base-starter",
-  "version": "22.1.0",
+  "version": "22.1.1",
   "private": true,
   "description": "Angular 22 starter (SSR, Tailwind 4, @lenne.tech/ng-base) for lenne.Tech projects, scaffolded by the lt CLI (lt frontend angular / lt fullstack init --frontend angular).",
   "license": "MIT",
@@ -63,7 +63,7 @@
     "@angular/router": "22.2.5",
     "@angular/ssr": "22.2.6",
     "@better-auth/passkey": "1.7.19",
-    "@lenne.tech/ng-base": "22.1.0",
+    "@lenne.tech/ng-base": "22.1.1",
     "@ng-icons/core": "36.1.0",
     "@ng-icons/lucide": "36.1.0",
     "@ng-icons/simple-icons": "36.1.0",
