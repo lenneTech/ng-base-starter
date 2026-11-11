@@ -155,6 +155,21 @@ test.describe.serial('verify-email keeps the address and the token out of the UR
       await page.getByRole('button', { name: 'Neue E-Mail senden' }).click();
       const response = await answer;
       expect(response.request().postDataJSON()).toEqual({ token: refused });
+
+      // nest-server counts tokens it cannot read per client address, 10 an hour per API process. Each run of this
+      // test sends one, so an API that keeps running locally (docs/e2e-auth.md) answers 429 from the 11th run in an
+      // hour; CI and `lt dev test` start a fresh API. Then the test checks that refusal instead: shown translated, and
+      // neither address nor token leaks (Nuxt template 6318486).
+      if (response.status() === 429) {
+        expect(((await response.json()) as { message?: string }).message).toMatch(/^#LTNS_0020/);
+        await expect(page.getByText(/Zu viele Anfragen|Too many requests/).first()).toBeVisible();
+        await expectNoSecrets(page, refused, user.email);
+        test.info().annotations.push({
+          description: 'The API refused unreadable tokens from this address (10 an hour); restart it for the address-field path.',
+          type: 'rate-limited',
+        });
+        return;
+      }
       expect(await response.json()).toEqual({ email: null, success: true });
     }
 

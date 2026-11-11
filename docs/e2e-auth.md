@@ -27,6 +27,12 @@ token sealed (a JWE nobody can read), and the line names the account by
 JWT, matched by the address in its payload. 12.6.0 prints the line only in the `local`, `ci` and
 `e2e` environments, so an API started otherwise leaves the suite without tokens.
 
+12.6.0 also counts tokens it cannot read at `POST /iam/resend-verification-email` per client
+address, 10 an hour per API process. `auth-verify-email-url.spec.ts` sends one per run, so against
+an API that keeps running it takes the refusal path from the 11th run in an hour and marks it with
+the annotation `rate-limited`. Restart the API, or use `lt dev test`, which starts a fresh one, to
+run the address-field path again.
+
 ### Where the log is looked for
 
 `tests/e2e/helpers/auth-backend.ts` → `readServerLog()` concatenates every candidate it finds,
@@ -83,11 +89,17 @@ is exactly why it stayed unnoticed until the suite first ran against a fresh CI 
 Any of these can serve the API on port 3000. Each needs its `betterAuth` section configured
 per the scenario you want to exercise.
 
+Start it with `PLAYWRIGHT=true`, as the CI job does. nest-server (11.25.6 or later) then reads a
+user's roles fresh on every request; otherwise it answers them from a 15-second cache. A role that
+`grantAdminRole` writes into the database does not reach that cache, so `auth-admin-role.spec.ts`
+and `admin-system.spec.ts` fail against an API started without it: the new sign-in still carries
+no admin role. Under `lt dev up` and `lt dev test` the cache is off already (`LT_DEV_ACTIVE`).
+
 **Option A — `nest-server-starter` (standalone template)**
 
 ```bash
 cd <nest-server-starter>
-npm run start > /tmp/nest-server.log 2>&1 &
+PLAYWRIGHT=true npm run start > /tmp/nest-server.log 2>&1 &
 ```
 
 Config: `src/config.env.ts` → `betterAuth`
@@ -96,7 +108,7 @@ Config: `src/config.env.ts` → `betterAuth`
 
 ```bash
 cd <nest-server>
-npm run start > /tmp/nest-server.log 2>&1 &
+PLAYWRIGHT=true npm run start > /tmp/nest-server.log 2>&1 &
 ```
 
 Config: `src/config.env.ts` → `betterAuth`
@@ -105,7 +117,7 @@ Config: `src/config.env.ts` → `betterAuth`
 
 ```bash
 cd projects/api
-npm run start > /tmp/nest-server.log 2>&1 &
+PLAYWRIGHT=true npm run start > /tmp/nest-server.log 2>&1 &
 ```
 
 Config: `projects/api/src/config.env.ts` → `betterAuth`
@@ -129,7 +141,7 @@ Only the Playwright report is kept, and only on failure.
 If the job ever gets too slow to block on, shard it the way lt-monorepo's `app:test` does
 (`parallel: 2`) rather than demoting it to advisory.
 
-### The AI module (`ai-visibility.spec.ts`, `ai-settings-mcp-confirmation.spec.ts`)
+### The AI module (`ai-visibility.spec.ts`, `ai-settings-mcp-confirmation.spec.ts`, `ai-prompts-include-disabled.spec.ts`)
 
 The app shows its AI pages only while the API runs its AI module, read from the public
 `GET /ai/status` (nest-server 12.3.1 or later): 200 `{ mcp }` while it runs, 404 while it is off.
@@ -137,7 +149,7 @@ The app shows its AI pages only while the API runs its AI module, read from the 
 switch the module and its MCP server on, with any of the options above:
 
 ```bash
-NSC__AI__ENCRYPTION_SECRET=<any 32 characters> NSC__AI__MCP__ENABLED=true npm run start > /tmp/nest-server.log 2>&1 &
+NSC__AI__ENCRYPTION_SECRET=<any 32 characters> NSC__AI__MCP__ENABLED=true PLAYWRIGHT=true npm run start > /tmp/nest-server.log 2>&1 &
 ```
 
 Check it with `curl -s localhost:3000/ai/status`: `{"mcp":true}` means both are on, 404 means the
@@ -148,11 +160,17 @@ module is off or nest-server is older.
   A run that sets `NSC__AI__ENCRYPTION_SECRET` expects it on and fails on a 404.
 - `ai-settings-mcp-confirmation.spec.ts` needs the MCP server, because the card appears only with
   it. It skips without one, unless the run sets `NSC__AI__MCP__ENABLED`: then it fails.
+- `ai-prompts-include-disabled.spec.ts` needs the module. It checks that every load of
+  `/app/settings/ai-prompts` asks for the disabled prompts too (`?includeDisabled=true`), the reload
+  after a save included, and that the chat picker on `/app/ai` never does. Whether the page then
+  shows a disabled prompt depends on the API: nest-server 12.7.0 lists it, an older one ignores the
+  parameter, which the spec notes as the annotation `api-before-12.7.0`. It skips without the module,
+  unless the run sets `NSC__AI__ENCRYPTION_SECRET`: then it fails.
 
 Both `e2e-auth` jobs (this repo's root workflow and the template's own) set both variables. The
 trigger is deliberately not `CI`: an lt-monorepo's `app:test` runs this suite with `CI=true`
-against an API whose module is off, where `ai-visibility` checks the off state and the MCP spec
-skips.
+against an API whose module is off, where `ai-visibility` checks the off state and the MCP and
+prompt specs skip.
 
 ## Configuration scenarios
 
@@ -220,7 +238,7 @@ For each scenario:
 2. Restart the backend:
    ```bash
    pkill -f "nest-server" 2>/dev/null
-   cd <backend-path> && pnpm run start:e2e:dist > /tmp/nest-server.log 2>&1 &
+   cd <backend-path> && PLAYWRIGHT=true pnpm run start:e2e:dist > /tmp/nest-server.log 2>&1 &
    ```
 3. Wait until it answers: `curl -s http://localhost:3000/ > /dev/null`
 4. Run: `E2E_EXPECT_AUTH_MODE=<cookie|jwt> npx playwright test tests/e2e/auth-lifecycle.spec.ts`
@@ -244,10 +262,19 @@ renders nor meaningful; the accessible name is what a user and a screen reader r
 ## Test data
 
 `resetTestData(email)` removes a user and everything Better Auth hung off it — sessions,
-accounts, verifications, passkeys, 2FA rows — plus the user's AI settings (`aiUserSettings`). Without it an auth suite starts failing on its
+accounts, verifications, passkeys, 2FA rows — plus the user's AI settings (`aiUserSettings`) and AI prompts (`aiPrompts`, by `ownerId`). Without it an auth suite starts failing on its
 _second_ run rather than its first.
 
 It deletes by exact email match and refuses anything that is not an `@test.com` address, and it
 refuses a non-loopback `MONGO_URI` unless `E2E_ALLOW_REMOTE_DB=true` is set explicitly. Use
 `generateTestUser()` from `@lenne.tech/ng-base/testing` to get a correctly namespaced,
 per-run-unique address.
+
+`grantAdminRole(email)` gives such a user the admin role (`users.roles`), under the same two
+guards. A test user cannot grant itself a role through the API, so this is the suite's only way to
+an admin besides the setup. The app reads the roles at sign-in: sign in again after the call, against
+an API started with `PLAYWRIGHT=true` (see "Backend options"), whose role cache would otherwise hide
+the new role for 15 seconds. `auth-admin-role.spec.ts` uses it to walk `/app/admin` without and with
+the role, and fails on any request to `/iam/admin/*` (ng-base keeps Better Auth's admin client plugin
+off, because nest-server serves no admin routes); `admin-system.spec.ts` uses it for the System
+page's error state.

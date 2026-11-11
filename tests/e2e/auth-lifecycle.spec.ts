@@ -417,6 +417,16 @@ test.describe.serial('Comprehensive Better-Auth E2E Flow', () => {
     await expect(page.getByText(testUser.email).first()).toBeVisible({ timeout: 5000 });
     console.info('  Logged in with 2FA, deep link kept');
 
+    // The JS-readable token cookie holds a JWT or nothing, never the session token (Nuxt template #36). nest-server
+    // answers the second factor with `{ token, user }`, and `token` is the session token the httpOnly cookie
+    // protects; ng-base adopts only a JWT (`readLtAuthAnswer`, `setJwtToken`), and this pins it end to end.
+    const cookies = await page.context().cookies();
+    const sessionToken = decodeURIComponent(cookies.find((cookie) => cookie.name.endsWith('session_token'))?.value ?? '').split('.')[0];
+    for (const cookie of cookies.filter((candidate) => candidate.name.endsWith('jwt-token'))) {
+      expect(cookie.value, `${cookie.name} must hold a JWT, not the session token`).toMatch(/^eyJ[\w-]*\.[\w-]+\.[\w-]+$/);
+      expect(cookie.value).not.toBe(sessionToken);
+    }
+
     // Logout
     await logout(page);
   });

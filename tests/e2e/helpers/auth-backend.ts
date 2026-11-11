@@ -238,6 +238,12 @@ export async function resetTestData(email: string): Promise<void> {
       } catch {
         // Collection may not exist
       }
+      // AI prompts name their author as `ownerId`, not `userId` (tests/e2e/ai-prompts-include-disabled.spec.ts).
+      try {
+        await db.collection('aiPrompts').deleteMany({ ownerId: { $in: [userId, user._id] } });
+      } catch {
+        // Collection may not exist (AI module off)
+      }
       // Also clean verification by identifier (email)
       try {
         await db.collection('verification').deleteMany({ identifier: email });
@@ -245,6 +251,38 @@ export async function resetTestData(email: string): Promise<void> {
         // Collection may not exist
       }
       await db.collection('users').deleteOne({ _id: user._id });
+    }
+  } finally {
+    await client.close();
+  }
+}
+
+/**
+ * Give a test user the admin role, as an operator would in the database (the Nuxt template's helper, #41).
+ *
+ * The suite has no other way to an admin: the first admin belongs to the setup, and a test user cannot grant itself a
+ * role through the API. nest-server keeps the roles in `users.roles`; the app reads them from the session at sign-in,
+ * so the user has to sign in again afterwards. nest-server answers a user's roles from a 15-second cache, which a
+ * write here does not reach, unless the API runs with `PLAYWRIGHT=true` (nest-server 11.25.6 or later; the CI job
+ * sets it) or under `lt dev up` / `lt dev test` (`LT_DEV_ACTIVE`). Against an API started otherwise, the new sign-in
+ * still carries no admin role.
+ *
+ * @param email Address of the user; must be `@test.com`, like every address {@link resetTestData} cleans up.
+ * @throws When `MONGO_URI` is not loopback (unless `E2E_ALLOW_REMOTE_DB=true`), when the address is not a test
+ *   address, or when no user has it.
+ */
+export async function grantAdminRole(email: string): Promise<void> {
+  assertSafeToDelete(email);
+
+  const client = new MongoClient(MONGO_URI);
+  try {
+    await client.connect();
+    const result = await client
+      .db()
+      .collection('users')
+      .updateOne({ email }, { $set: { roles: ['admin'] } });
+    if (result.matchedCount !== 1) {
+      throw new Error(`No user "${email}" to grant the admin role to`);
     }
   } finally {
     await client.close();
