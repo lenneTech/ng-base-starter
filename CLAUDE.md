@@ -261,11 +261,16 @@ The starter follows ng-base, release for release (owner rule, Kai, 2026-11-07, t
 
 1. **Same number.** `version` in `package.json` equals the exactly pinned `@lenne.tech/ng-base` version.
 2. **Every ng-base version gets its starter version.** Each ng-base version published to npm is followed by a starter
-   release with that number (`chore(release): X.Y.Z`, tag `vX.Y.Z`, GitHub release), also when the bump is the only
-   change.
+   release with that number, also when the bump is the only change: the commit that pins it raises `version` with it,
+   the release commit `chore(release): X.Y.Z` adds the CHANGELOG section, then tag `vX.Y.Z` and the GitHub release.
 3. **Nothing else changes the version.** Starter changes between two ng-base releases are committed to `main` with a
    normal message and leave `version` as it is: no patch bump, no starter-only release, no tag. They ship with the
    next ng-base release.
+
+A migration guide for a starter-only change is written with that change as `migration-guides/next-<topic>.md`, because
+its number is not known yet. The commit that raises `version` for the release it ships in renames it to
+`<version>-<topic>.md`, and the release commit links it in the changelog section. `tests/unit/next-guides.test.ts` (part
+of `check`) fails while `version` is ahead of CHANGELOG.md and a `next-` guide is still there.
 
 One exception predates the rule: v22.0.3 pins ng-base 22.0.2. ng-base skipped 22.0.3 for it, and from 22.0.4 on both
 carry the same number.
