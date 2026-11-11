@@ -9,6 +9,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideFingerprint, lucideKeyRound, lucidePlus, lucideShieldCheck, lucideTrash, lucideUser } from '@ng-icons/lucide';
 import QRCode from 'qrcode';
 
+import { errorText } from '../shared/error-text';
 import { fieldError } from '../shared/field-error';
 import { BackupCodesDialog } from './backup-codes-dialog';
 import { confirmPasswordSchema, type PasswordModel, totpCodeSchema, type TotpCodeModel } from './security-schemas';
@@ -224,11 +225,11 @@ export class SecurityPage {
   }
 
   /**
-   * The text of a refused call: nest-server's `#LTNS_xxxx` message translated, otherwise the German fallback. Better
-   * Auth's own 2FA answers ("Invalid code", "Invalid password") carry no code; `translateError` would hand them back
-   * unchanged, in English (auth rule 1: test the input, never `translateError(x) || fallback`).
+   * The text of a refused call: a message with an error code (nest-server's `#LTNS_xxxx`, a project's own `#PROJ_xxxx`)
+   * translated, otherwise the German fallback. Better Auth's own 2FA answers ("Invalid code", "Invalid password") carry
+   * no code; `translateError` would hand them back unchanged, in English (auth rule 1, `shared/error-text.ts`).
    */
   private errorText(message: string | undefined, fallback: string): string {
-    return message?.includes('#LTNS_') ? this.errors.translateError(message) : fallback;
+    return errorText(message, (text) => this.errors.translateError(text), fallback);
   }
 }

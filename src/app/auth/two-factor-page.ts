@@ -7,9 +7,24 @@ import { HlmButton, HlmInput, LtFormField, LtPageCard } from '@lenne.tech/ng-bas
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideShieldCheck } from '@ng-icons/lucide';
 
+import { errorText } from '../shared/error-text';
 import { fieldError } from '../shared/field-error';
 import { twoFactorSchema, type TwoFactorModel } from './auth-schemas';
 import { safeRedirectTarget } from './safe-redirect-target';
+
+/**
+ * Better Auth's refusals of the second factor that are not a wrong code. They carry no `#…_0000:` marker, so
+ * `errorText` alone would show each as "Code ungültig", and the user would retry a code that cannot work. `restart`:
+ * the challenge is spent, only a new sign-in starts another one (the Nuxt template's `pages/auth/2fa.vue`, #38).
+ */
+const TWO_FACTOR_REFUSALS: Readonly<Record<string, { restart: boolean; text: string }>> = {
+  ACCOUNT_TEMPORARILY_LOCKED: {
+    restart: false,
+    text: 'Zu viele Fehlversuche. Die Bestätigung ist für einige Minuten gesperrt, bitte versuche es später erneut.',
+  },
+  INVALID_TWO_FACTOR_COOKIE: { restart: true, text: 'Die Bestätigung ist abgelaufen. Bitte melde dich erneut an.' },
+  TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE: { restart: true, text: 'Zu viele Versuche mit diesem Code. Bitte melde dich erneut an.' },
+};
 
 /**
  * `/auth/2fa`: the second step of a sign-in that started on `/auth/login`, with a TOTP code or a backup code.
@@ -58,13 +73,16 @@ export class TwoFactorPage {
       const result = backup ? await this.auth.twoFactor.verifyBackupCode({ code }) : await this.auth.twoFactor.verifyTotp({ code });
       if (result.error) {
         // Not `translateError(x) || fallback`: translateError returns its input when it cannot translate it. Better
-        // Auth's own answers ("Invalid code") carry no `#LTNS_` code and get the German text instead.
-        const message = result.error.message;
+        // Auth's own answers ("Invalid code") carry no error code and get the German text instead (`errorText`).
+        const refusal = result.error.code ? TWO_FACTOR_REFUSALS[result.error.code] : undefined;
         this.toast.show({
           color: 'error',
-          description: message?.includes('#LTNS_') ? this.errors.translateError(message) : backup ? 'Backup-Code ungültig' : 'Code ungültig',
+          description: refusal?.text ?? errorText(result.error.message, (text) => this.errors.translateError(text), backup ? 'Backup-Code ungültig' : 'Code ungültig'),
           title: 'Bestätigung fehlgeschlagen',
         });
+        if (refusal?.restart) {
+          await this.router.navigate(['/auth/login'], { queryParams: { redirect: this.redirectTarget() } });
+        }
         return undefined;
       }
       await this.router.navigateByUrl(this.redirectTarget());

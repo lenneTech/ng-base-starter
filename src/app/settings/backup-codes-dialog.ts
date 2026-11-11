@@ -6,6 +6,7 @@ import { HlmButton, HlmDialogTitle, injectLtOverlayData, injectLtOverlayRef, LtF
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCopy, lucideKeyRound } from '@ng-icons/lucide';
 
+import { errorText } from '../shared/error-text';
 import { fieldError } from '../shared/field-error';
 import { confirmPasswordSchema, type PasswordModel } from './security-schemas';
 
@@ -72,11 +73,11 @@ export class BackupCodesDialog {
   }
 
   /**
-   * The text of a refused call: nest-server's `#LTNS_xxxx` message translated, otherwise the German fallback. Better
-   * Auth's own 2FA answers ("Invalid code", "Invalid password") carry no code; `translateError` would hand them back
-   * unchanged, in English (auth rule 1: test the input, never `translateError(x) || fallback`).
+   * The text of a refused call: a message with an error code (nest-server's `#LTNS_xxxx`, a project's own `#PROJ_xxxx`)
+   * translated, otherwise the German fallback. Better Auth's own 2FA answers ("Invalid code", "Invalid password") carry
+   * no code; `translateError` would hand them back unchanged, in English (auth rule 1, `shared/error-text.ts`).
    */
   private errorText(message: string | undefined, fallback: string): string {
-    return message?.includes('#LTNS_') ? this.errors.translateError(message) : fallback;
+    return errorText(message, (text) => this.errors.translateError(text), fallback);
   }
 }
