@@ -3,6 +3,31 @@
 All notable changes to this project are documented in this file. The 14.x line (Angular 14, `@nguniversal`, Bootstrap) ends
 with version 14.34.0 at commit `7b85967` (last tag `v14.0.1`); its history stays in Git.
 
+### [22.1.1](https://github.com/lenneTech/ng-base-starter/compare/v22.1.0...v22.1.1) (2026-11-11)
+
+### Highlights for adopters
+
+- **Keyboard users reach "Passwort vergessen?" again, and the header speaks German.** The login page's reset link carried `tabindex="-1"`, so the password reset was out of reach without a mouse (WCAG 2.1.1). The header's sign-out button was named "Logout" and its sign-in link "Login"; they are now "Abmelden" and "Anmelden". E2E specs that looked for "Logout" use `getByLabel('Abmelden', { exact: true })`. Guide: [22.1.1-sign-in-labels-and-forgot-password-link.md](migration-guides/22.1.1-sign-in-labels-and-forgot-password-link.md).
+- **An interrupted `check` no longer leaves the built server running.** `check:server-start` makes the server ignore SIGTERM, as PID 1 in a container does. Ctrl-C or a watchdog that ended the check left it running without a parent, for hours. It now ends itself once the check is gone. The guide also shows how to find leftovers from earlier runs: [22.1.1-check-server-start-orphan.md](migration-guides/22.1.1-check-server-start-orphan.md).
+- **E2E proof that the server-rendered HTML never contains the internal `NG_API_URL`.** The new spec starts the built server against an unreachable internal host and against the API under its second spelling, and checks every server-rendered page signed out, signed in and as admin. A project found the leak through image URLs built with `buildUrl()`; links that end up in the HTML take `buildBrowserUrl()` or `LtFileService.getFileUrl()`.
+- **`@lenne.tech/ng-base` 22.1.1.** SSR regression tests and clearer JSDoc on `buildUrl()` (requests) versus `buildBrowserUrl()` (every URL that ends up in the HTML); the shipped code is unchanged. better-auth and `@better-auth/passkey` stay on 1.7.19, in step with nest-server-starter 12.8.9; overrides minimatch 11.0.5 and postcss-selector-parser 6.1.6.
+- **In step with the Nuxt template.** The admin specs leave the app before they drop the session, the lifecycle spec generates new backup codes, and `check` fails when `version` and the ng-base pin differ.
+
+### Bug Fixes
+
+- **a11y:** reach "Passwort vergessen?" by keyboard, German sign-in and sign-out labels, as in the Nuxt template ([6e81cf6](https://github.com/lenneTech/ng-base-starter/commit/6e81cf634100583aac97bda468028adcd16fe226))
+- **check:** end the server when check-server-start is interrupted ([543ce41](https://github.com/lenneTech/ng-base-starter/commit/543ce41a86ad4a740823a53aad5855d3bac26f68))
+
+### Tests
+
+- **e2e:** the server-rendered HTML never contains the internal API URL ([9ee3f8d](https://github.com/lenneTech/ng-base-starter/commit/9ee3f8d461398748e223f3c0a78aeff371bb86ca))
+- **e2e:** leave the app before dropping the session, generate new backup codes, as in the Nuxt template ([53ca9ab](https://github.com/lenneTech/ng-base-starter/commit/53ca9ab6d44829503cd313a97a8e82d330e41c12))
+- fail check when the version and the ng-base pin differ, as in the Nuxt template ([356e338](https://github.com/lenneTech/ng-base-starter/commit/356e338e7e11864279ce48aefd795d89ee7f8ebd))
+
+### Build System
+
+- **deps:** pin @lenne.tech/ng-base 22.1.1, minimatch 11.0.5, postcss-selector-parser 6.1.6 ([5f15432](https://github.com/lenneTech/ng-base-starter/commit/5f154328b8dd16f90ba3fdd60f49834506783df9))
+
 ## [22.1.0](https://github.com/lenneTech/ng-base-starter/compare/v22.0.5...v22.1.0) (2026-11-11)
 
 ### Highlights for adopters
