@@ -37,7 +37,9 @@ export default defineConfig({
   input: withOpenApiPath(apiUrl),
   output: {
     path: './src/api-client',
-    postProcess: ['oxlint', 'oxfmt'],
+    // oxfmt only: `.oxlintrc.json` ignores src/api-client/**, and oxlint on a path it ignores exits 1, which
+    // would fail every run before oxfmt formats the client (tests/unit/oxlint-generated-client.test.ts).
+    postProcess: ['oxfmt'],
   },
   // Angular client (HttpClient, so the app's interceptors — credentials, Bearer, 401 probe — apply) plus the
   // `@angular/common` plugin, which emits an `HttpRequest` factory and an `httpResource` per operation.

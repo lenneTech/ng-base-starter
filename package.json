@@ -117,7 +117,7 @@
   },
   "lint-staged": {
     "src/**/*.ts": [
-      "oxlint --type-aware --fix",
+      "oxlint --type-aware --fix --no-error-on-unmatched-pattern",
       "eslint --fix",
       "oxfmt"
     ],

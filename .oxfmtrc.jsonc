@@ -13,5 +13,7 @@
     { "files": ["src/**/*.html"], "language": "angular-html" },
     { "files": ["src/index.html"], "language": "html" },
   ],
-  "ignorePatterns": [".angular", ".output", ".output-*", "node_modules", "dist", "coverage", "playwright-report", "test-results", "pnpm-lock.yaml", "src/api-client"],
+  // src/api-client/ is formatted, not ignored: the generator runs oxfmt on it (openapi-ts.config.ts `postProcess`), and
+  // oxfmt on a path it ignores exits 2, which failed every generate-types run (tests/unit/oxlint-generated-client.test.ts).
+  "ignorePatterns": [".angular", ".output", ".output-*", "node_modules", "dist", "coverage", "playwright-report", "test-results", "pnpm-lock.yaml"],
 }
