@@ -3,6 +3,40 @@
 All notable changes to this project are documented in this file. The 14.x line (Angular 14, `@nguniversal`, Bootstrap) ends
 with version 14.34.0 at commit `7b85967` (last tag `v14.0.1`); its history stays in Git.
 
+## [22.1.0](https://github.com/lenneTech/ng-base-starter/compare/v22.0.5...v22.1.0) (2026-11-11)
+
+### Highlights for adopters
+
+- **`@lenne.tech/ng-base` 22.1.0 (MINOR).** `authenticateWithPasskey()` no longer returns `session`, `twoFactor.verifyTotp()` / `verifyBackupCode()` no longer return Better Auth's opaque session token, and eight unused text keys are gone. The starter's own pages read none of them; a project that does follows ng-base's [migration guide](https://github.com/lenneTech/ng-base/blob/main/migration-guides/22.0.x-to-22.1.0.md).
+- **better-auth and `@better-auth/passkey` 1.7.19**, in step with nest-server-starter 12.8.8, so a generated workspace keeps one better-auth version (`check:workspace`); typescript-eslint 8.72.2, oxlint 1.93.0, oxfmt 0.78.0.
+- **`pnpm run generate-types` works again, and its output is no longer linted.** `.oxfmtrc.jsonc` ignored `src/api-client`, so the generator's oxfmt step exited 2 and every run ended with exit code 1. oxfmt now formats the client, and oxlint ignores it: measured against nest-server-starter 12.8.4, `lint` reported 36 findings in generated files, a `no-floating-promises` error among them, and now none. Guide: [22.1.0-oxlint-ignores-generated-client.md](migration-guides/22.1.0-oxlint-ignores-generated-client.md).
+- **The System page shows when the API does not report its build.** A failed `GET /meta` used to read as an unknown commit, indistinguishable from a local build. It is now the alert "API-Build nicht abrufbar" with "Erneut versuchen": busy without losing the focus, a failed retry reported with its time, a successful one moving the focus to the API figures. Guide: [22.1.0-system-page-api-error.md](migration-guides/22.1.0-system-page-api-error.md).
+- **The 2FA page says why a code was refused.** An expired challenge or too many attempts sends the user back to the sign-in (the deep link kept), a temporarily locked account asks them to wait; before, all three read "Code ungültig". Error toasts translate a project's own `#PROJ_0001:` codes too. Guide: [22.1.0-two-factor-refusals.md](migration-guides/22.1.0-two-factor-refusals.md).
+- **`check` proves the built server shuts down on SIGTERM** within Docker's 10 s grace period, with PID 1 semantics. Guide: [22.1.0-check-graceful-shutdown.md](migration-guides/22.1.0-check-graceful-shutdown.md).
+- **In step with the Nuxt template** (nuxt-base-starter since 2.38.0): new E2E specs for the admin role (`grantAdminRole`), the System page's error state, the AI prompts' `includeDisabled`, the site name and repository link, the JS-readable token cookie after 2FA (a JWT or nothing), and a rate-limited resend; a guard that a release renames its `next-` migration guides.
+
+### Features
+
+- **check:** prove the built server shuts down on SIGTERM ([9c979bc](https://github.com/lenneTech/ng-base-starter/commit/9c979bc9dc0baf2c760b94460e439234ef737491))
+
+### Bug Fixes
+
+- **lint:** leave the generated API client to its generator, and let oxfmt format it ([a933835](https://github.com/lenneTech/ng-base-starter/commit/a9338355a5c8525d1dd752b234302dede47bbca9))
+- **admin:** show a failed build query on the System page, with a retry ([dda146e](https://github.com/lenneTech/ng-base-starter/commit/dda146e2528287350a3a151380fb79a3d4df7a96))
+- **auth:** say why a second factor was refused ([ad10764](https://github.com/lenneTech/ng-base-starter/commit/ad107645827244a4197ed4cb00b0513da4ddf44e))
+
+### Documentation
+
+- the version moves with the ng-base pin, and `next-` guides get its number ([8f9555c](https://github.com/lenneTech/ng-base-starter/commit/8f9555c8c683a7c374d325da718710037db3e04d))
+
+### Tests
+
+- **e2e:** admin role, System page, AI prompts, site identity, token cookie and rate limit, as in the Nuxt template ([31b0886](https://github.com/lenneTech/ng-base-starter/commit/31b0886dd8199df69a763c3f5a3fe23b4bcecd12))
+
+### Build System
+
+- **deps:** pin @lenne.tech/ng-base 22.1.0, better-auth 1.7.19 ([8f1c649](https://github.com/lenneTech/ng-base-starter/commit/8f1c649de91795fd2125c31342df3338be1b7968))
+
 ### [22.0.5](https://github.com/lenneTech/ng-base-starter/compare/v22.0.4...v22.0.5) (2026-11-09)
 
 ### Highlights for adopters
