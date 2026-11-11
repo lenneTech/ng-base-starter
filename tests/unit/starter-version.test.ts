@@ -9,10 +9,11 @@
  *
  * The test runs only in the starter's own repository, recognised by its `origin` (this checkout, the CI checkout, a
  * release worktree). A project generated from the starter has its own version and upgrades ng-base on its own schedule,
- * so the two numbers differ there by design. Its files cannot tell it apart: `lt frontend angular` keeps CHANGELOG.md,
- * `migration-guides/` and even the package name (only `lt fullstack init` removes the repository files), but every
- * generated project starts without the starter's `.git`. The Nuxt template keeps its test outside the copied
- * `nuxt-base-template/` for the same reason; the Angular starter is copied whole.
+ * so the two numbers differ there by design: the lt CLI starts it at `0.0.0`, which this test would reject. Its files
+ * cannot tell it apart reliably: the CLI removes CHANGELOG.md, `migration-guides/` and the starter's name, but a CLI
+ * before 1.58.6 kept all of them, and this file is copied either way. What every generated project lacks is the
+ * starter's `.git`. The Nuxt template keeps its test outside the copied `nuxt-base-template/` for the same reason; the
+ * Angular starter is copied whole.
  *
  * A pin that is no registry version (the injected `file:` build while ng-base is developed alongside) names no release
  * yet; `scripts/check-ng-base-pin.mjs` refuses it for a release.

@@ -19,7 +19,9 @@ lt frontend angular
 ```
 
 Both copy this repository into `projects/app` (or the directory you name) and remove the repo-only files
-(`migration-guides/`, `CHANGELOG.md`, `.github/`, the lockfile).
+(`.github/`, `CHANGELOG.md`, `extras/`, `migration-guides/`). The project gets its own `package.json` identity:
+version `0.0.0`, no `repository`, and the name `app` in a fullstack project or the directory name on its own. On its
+own it keeps `pnpm-lock.yaml`; in a fullstack project the monorepo's root lockfile replaces it.
 
 ## Develop
 
