@@ -14,26 +14,46 @@
       </lt-notice>
     }
 
+    @if (apiFailed()) {
+      <!-- The retry button stays mounted while it works (apiFailed clears only with an answer), so a keyboard user keeps
+           the focus. Busy without `disabled`: a disabled button would drop the focus to <body>. Outline with its own text
+           colour on its own background, so neither the alert's tint nor its error text colour sets the button's contrast. -->
+      <lt-notice variant="error" title="API-Build nicht abrufbar" data-testid="system-api-failed">
+        <p>{{ apiFailedDescription() }}</p>
+        <button hlmBtn variant="outline" size="sm" type="button" class="text-foreground" [attr.aria-busy]="apiMeta.isLoading() || null" (click)="retry()">
+          <ng-icon [name]="apiMeta.isLoading() ? 'lucideLoaderCircle' : 'lucideRefreshCw'" [class]="apiMeta.isLoading() ? 'motion-safe:animate-spin' : ''" aria-hidden="true" />
+          Erneut versuchen
+        </button>
+      </lt-notice>
+    }
+    <p class="sr-only" role="status">{{ retryStatus() }}</p>
+
     <div hlmCard>
       <div hlmCardContent class="space-y-4">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <div class="text-sm">App (Frontend)</div>
+            <h3 class="text-sm font-normal">App (Frontend)</h3>
             <div class="text-xs text-muted-foreground">Version {{ appVersion() }}</div>
           </div>
-          <span hlmBadge variant="secondary" [title]="appCommit()">{{ shortCommit(appCommit()) }}</span>
+          <span hlmBadge variant="secondary" data-testid="system-app-commit" [title]="appCommit()">{{ shortCommit(appCommit()) }}</span>
         </div>
         <hlm-separator />
         <div class="flex items-center justify-between gap-4">
           <div>
-            <div class="text-sm">API (Backend)</div>
-            <div class="text-xs text-muted-foreground">Version {{ apiVersion() }} · Umgebung {{ apiEnvironment() }}</div>
+            <h3 #apiHeading class="text-sm font-normal outline-none" tabindex="-1">API (Backend)</h3>
+            @if (apiFailed()) {
+              <div class="text-xs text-muted-foreground">Keine Angaben, solange die API nicht antwortet.</div>
+            } @else {
+              <div class="text-xs text-muted-foreground">Version {{ apiVersion() }} · Umgebung {{ apiEnvironment() }}</div>
+            }
           </div>
           <div class="flex items-center gap-2">
             @if (apiMeta.isLoading()) {
               <ng-icon name="lucideLoaderCircle" size="1rem" class="animate-spin text-muted-foreground" aria-label="Lädt" />
             }
-            <span hlmBadge [variant]="match() ? 'secondary' : 'destructive'" [title]="apiCommit()">{{ shortCommit(apiCommit()) }}</span>
+            @if (!apiFailed()) {
+              <span hlmBadge data-testid="system-api-commit" [variant]="match() ? 'secondary' : 'destructive'" [title]="apiCommit()">{{ shortCommit(apiCommit()) }}</span>
+            }
           </div>
         </div>
       </div>
