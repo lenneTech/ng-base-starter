@@ -7,7 +7,7 @@
     <lt-form-field for="login-password" label="Passwort" [error]="fieldError(loginForm.password)" [required]="true">
       <lt-password-input id="login-password" autocomplete="current-password" placeholder="Passwort eingeben" [formField]="loginForm.password" />
     </lt-form-field>
-    <a routerLink="/auth/forgot-password" class="-mt-2 self-end text-sm font-medium text-primary hover:underline" tabindex="-1">Passwort vergessen?</a>
+    <a routerLink="/auth/forgot-password" class="-mt-2 self-end text-sm font-medium text-primary hover:underline">Passwort vergessen?</a>
 
     <button hlmBtn type="submit" class="w-full" [disabled]="loading()">Anmelden</button>
   </form>

@@ -69,7 +69,7 @@ async function registerUser(page: Page, user: { email: string; name: string; pas
 }
 
 async function logout(page: Page): Promise<void> {
-  const logoutButton = page.getByLabel('Logout');
+  const logoutButton = page.getByLabel('Abmelden', { exact: true });
   await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
   await logoutButton.click();
   await page.waitForURL(/\/auth\/login/, { timeout: 5000 });

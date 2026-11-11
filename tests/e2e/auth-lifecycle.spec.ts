@@ -58,7 +58,7 @@ async function loginWith2FA(page: Page, email: string, password: string, totpSec
 }
 
 async function logout(page: Page): Promise<void> {
-  const logoutButton = page.getByLabel('Logout');
+  const logoutButton = page.getByLabel('Abmelden', { exact: true });
   await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
   await logoutButton.click();
   await page.waitForURL(/\/auth\/login/, { timeout: 5000 });
@@ -551,7 +551,7 @@ test.describe.serial('Comprehensive Better-Auth E2E Flow', () => {
     // No logout needed, and adding one breaks the step: every test in this file gets
     // a FRESH page, which is why each step starts by signing in again. The visitor
     // here is already a guest, so `guest.global` never fires — and a `logout()` call
-    // waits 5s for a Logout button that is not on a login page.
+    // waits 5s for an "Abmelden" button that is not on a login page.
     await gotoAndWaitForHydration(page, '/auth/forgot-password');
     await fillInput(page, 'input[name$=".email"]', testUser.email);
     await page.getByRole('button', { name: 'Link anfordern' }).click();

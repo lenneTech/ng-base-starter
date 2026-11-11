@@ -51,6 +51,23 @@ async function stubResetEndpoint(page: Page): Promise<void> {
 }
 
 test.describe('Password reset request', () => {
+  test('the login page reaches "Passwort vergessen?" by keyboard', async ({ page }) => {
+    await page.goto('/auth/login', { waitUntil: 'domcontentloaded' });
+    await waitForHydration(page);
+
+    // The link carried tabindex="-1", so a keyboard user could not reach the reset at all (WCAG 2.1.1). After the
+    // password field come its show/hide button and then the link.
+    const link = page.getByRole('link', { name: 'Passwort vergessen?' });
+    await page.locator('#login-password').focus();
+    for (let presses = 0; presses < 3 && !(await link.evaluate((el) => el === document.activeElement)); presses++) {
+      await page.keyboard.press('Tab');
+    }
+    await expect(link).toBeFocused();
+
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/auth\/forgot-password$/);
+  });
+
   test('sends an absolute redirectTo built from the app origin', async ({ page }) => {
     await page.goto('/auth/forgot-password', { waitUntil: 'domcontentloaded' });
     await waitForHydration(page);

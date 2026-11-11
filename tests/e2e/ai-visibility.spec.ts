@@ -138,7 +138,7 @@ test.describe('AI pages follow the API AI module', () => {
     } else {
       await test.step('module off: no links, and an AI route goes to /app', async () => {
         // The signed-in header has rendered, so a missing link is an answer, not a race.
-        await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible({ timeout: 10000 });
+        await expect(page.getByLabel('Abmelden', { exact: true })).toBeVisible({ timeout: 10000 });
         await expect(aiLink).toHaveCount(0);
         await gotoAndWaitForHydration(page, '/app/settings/ai');
         await expect(page).toHaveURL(/\/app\/?$/, { timeout: 10000 });

@@ -4,13 +4,13 @@
     <div ltHeaderActions class="flex items-center gap-1">
       @if (auth.isAuthenticated()) {
         <span class="hidden text-sm text-muted-foreground sm:inline">{{ auth.user()?.email }}</span>
-        <button hlmBtn variant="ghost" size="icon" type="button" aria-label="Logout" hlmTooltip="Logout" (click)="signOut()">
+        <button hlmBtn variant="ghost" size="icon" type="button" aria-label="Abmelden" hlmTooltip="Abmelden" (click)="signOut()">
           <ng-icon name="lucideLogOut" aria-hidden="true" />
         </button>
       } @else {
         <a hlmBtn variant="secondary" routerLink="/auth/login">
           <ng-icon name="lucideLogIn" aria-hidden="true" />
-          Login
+          Anmelden
         </a>
       }
       <lt-color-mode-button />
