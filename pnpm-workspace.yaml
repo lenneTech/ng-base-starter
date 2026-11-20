@@ -24,8 +24,8 @@ auditConfig:
 # pnpm 11 renamed `onlyBuiltDependencies` to `allowBuilds` (map of pkg -> bool). Both keys
 # are kept so the file works across pnpm 10 and pnpm 11.
 allowBuilds:
-  # The Angular CLI's own defaults for `ng new` (22.2.6): the prebuilt optional binaries are
-  # enough, the install scripts only compile a fallback.
+  # The Angular CLI's own defaults for `ng new` (22.3.0, unchanged since 22.2.6): the prebuilt
+  # optional binaries are enough, the install scripts only compile a fallback.
   '@parcel/watcher': false
   esbuild: true
   lmdb: false
@@ -42,10 +42,11 @@ onlyBuiltDependencies:
   - simple-git-hooks
 
 # `pnpm peers check` (part of `check`) fails on one pairing nobody in this tree chose:
-# @angular/build 22.2.6 > @oxc-parser/binding-wasm32-wasi 0.156.0 (the WASM fallback of the oxc parser,
+# @angular/build 22.3.0 > @oxc-parser/binding-wasm32-wasi 0.158.0 (the WASM fallback of the oxc parser,
 # an optional dependency that only loads where no native binding exists) pins @emnapi/core and
 # @emnapi/runtime EXACTLY at 2.0.0-alpha.6, while its own @napi-rs/wasm-runtime 1.2.7 (newest) declares
-# `^1.7.1 || 2.0.0-beta.2 || 2.0.0-beta.3`. Read 2026-11-06. The rule accepts exactly that version for
+# `^1.7.1 || 2.0.0-beta.2 || 2.0.0-beta.3`. Read 2026-11-06; re-read 2026-11-20 with @angular/build
+# 22.3.0, and `pnpm peers check` still fails without the rule. The rule accepts exactly that version for
 # exactly that consumer; it changes nothing that installs. Drop it once oxc-parser's binding and
 # wasm-runtime agree again (pnpm peers check passes without it).
 peerDependencyRules:
@@ -69,24 +70,15 @@ peerDependencyRules:
 # The glob entry, `rimraf>glob@<14.0.2`, went on 2026-11-11: rimraf 6.1.4 requests glob ^14.0.3 itself,
 # `check-overrides.mjs` reported the entry as matching nothing, and fresh resolves with and without it
 # came out identical and audit-clean. Same removal as the nuxt-base-template (2026-11-09).
+#
+# The three minimatch entries (`eslint>`, `@eslint/config-array>`, `@typescript-eslint/typescript-estree>
+# minimatch@<11.0.1`, GHSA-g3hv-75wg-m249, first patched 11.0.1) went on 2026-11-19, by their own removal
+# condition: every consumer now requests minimatch 11 itself (eslint 10.15.0 and @eslint/config-array
+# 0.23.6 `^11.0.5`, @typescript-eslint/typescript-estree 8.73.0 `^11.0.1`, glob 14.0.4 `^11.0.5`), so no
+# key intersects a requested range any more. `check-overrides.mjs` reported all three as matching nothing
+# (the tree resolves minimatch 11.0.9), and fresh resolves with and without them came out identical and
+# audit-clean.
 overrides:
-  # minimatch 11 for the eslint chain that lints the Angular templates (angular-eslint 22.6.0 →
-  # eslint 10.14.0, @eslint/config-array 0.23.5, @typescript-eslint/typescript-estree 8.72.2). Each is
-  # on its newest release and requests minimatch ^10, vulnerable to GHSA-g3hv-75wg-m249 (moderate, DoS
-  # through globparts amplification, first patched 11.0.1). minimatch 11 dropped `makeRe()` and
-  # `Minimatch#regexp`; none of the three calls them. Read 2026-11-06: eslint (`lib/eslint/
-  # eslint-helpers.js`) and config-array use `new Minimatch(pattern, options).match(path[, partial])`
-  # and `.pattern`, typescript-estree calls `minimatch(path, pattern, { dot: true })`; all three exist
-  # unchanged in 11. Scoped per consumer, never a bare `minimatch@<11.0.1`: in an lt-monorepo that would
-  # also reach api consumers that may need `makeRe()`. Drop each entry once its consumer requests
-  # minimatch >=11.0.1 itself; `check-overrides.mjs` reports it.
-  # Target raised 11.0.4 -> 11.0.5 on 2026-11-11: glob 14.0.4 (under rimraf) requests minimatch ^11.0.5,
-  # so the tree keeps exactly one minimatch; 11.0.5 also bounds the glob-split expansion. 11.0.6 to
-  # 11.0.8 (11.0.7: quadratic compile time for long wildcard patterns, a regression since 11.0.0) were
-  # still inside the one-day release-age window that day.
-  '@eslint/config-array>minimatch@<11.0.1': 11.0.5
-  '@typescript-eslint/typescript-estree>minimatch@<11.0.1': 11.0.5
-  'eslint>minimatch@<11.0.1': 11.0.5
   # js-yaml quadratic CPU consumption via YAML merge-key chains (GHSA-52cp-r559-cp3m, GHSA-5p4m-2wfm-xmqj,
   # GHSA-2883-xcg3-v3hh, all high, patched >=4.3.2). Transitive via @hey-api/openapi-ts >
   # @hey-api/json-schema-ref-parser, whose newest release pins js-yaml EXACTLY at 4.2.0, so no bump can

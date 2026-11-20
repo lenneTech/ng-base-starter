@@ -1,4 +1,4 @@
-> Source of the following rules: Angular CLI 22.2.6, `ng new --ai-config=claude-code` (the `@schematics/angular` AI rules file), © Google LLC, MIT License. Kept verbatim; the lenne.Tech rules follow below the line.
+> Source of the following rules: Angular CLI 22.3.0, `ng new --ai-config=claude-code` (the `@schematics/angular` AI rules file), © Google LLC, MIT License. Kept verbatim; the lenne.Tech rules follow below the line.
 
 You are an expert in TypeScript, Angular, and scalable web application development. You write functional, maintainable, performant, and accessible code following Angular and TypeScript best practices.
 
@@ -56,7 +56,6 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 ## Services
 
 - Design services around a single responsibility
-- Use the `providedIn: 'root'` option for singleton services
 - Prefer the `@Service` decorator over `@Injectable({providedIn: 'root'})` for new singleton services (Angular v22+)
 - Use the `inject()` function instead of constructor injection
 
