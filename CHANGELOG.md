@@ -3,6 +3,27 @@
 All notable changes to this project are documented in this file. The 14.x line (Angular 14, `@nguniversal`, Bootstrap) ends
 with version 14.34.0 at commit `7b85967` (last tag `v14.0.1`); its history stays in Git.
 
+### [22.1.2](https://github.com/lenneTech/ng-base-starter/compare/v22.1.1...v22.1.2) (2026-11-20)
+
+### Highlights for adopters
+
+- **Sign-in through social providers, with an optional silent attempt, as in the Nuxt template (nuxt-base-starter #58).** The login page shows "Mit <Name> anmelden" for every provider `GET /iam/features` lists. `/auth/callback` finishes the sign-in only when the session exists and the auth state is in the `lt-auth-state` cookie, so a browser that refuses the cookie lands on the login page with `error=session_missing` instead of looping. `NG_PUBLIC_AUTH_SILENT_PROVIDER=<id>` (opt-in) takes over an existing provider session once per tab with `prompt=none`; after "Abmelden" no tab signs in silently until the next completed sign-in. Provider error codes become fixed German texts, and `error_description` never reaches the page. Provider options such as Microsoft's `tenantId` need nest-server 12.10.0 or later; take 12.10.1, the security release on top. Guide: [22.1.2-social-sign-in.md](migration-guides/22.1.2-social-sign-in.md).
+- **`@lenne.tech/ng-base` 22.1.2**, the first release with `signIn.social`. Angular, CLI, build and ssr 22.3.0 (no code migration), jsdom 31.0.1, vitest 5.1.1, `@playwright/test` 1.65.1 (in step with the `v1.65.1-noble` images of lt-monorepo 3.18.8), pnpm 11.28.12. better-auth and `@better-auth/passkey` stay on 1.7.19. The three minimatch overrides are gone, because every consumer requests a fixed minimatch itself. CLAUDE.md and AGENTS.md carry the AI rules file of CLI 22.3.0.
+- **Docs:** the README says what `lt frontend angular` removes and rewrites (lt CLI 1.58.6), and the 22.1.1 orphan guide names the changed `no-shutdown.mjs` fixture.
+
+### Features
+
+- **auth:** sign in through social providers, optionally silent, as in the Nuxt template ([c236929](https://github.com/lenneTech/ng-base-starter/commit/c2369290e4f62ace91f8086ffc13748f602e5d83))
+
+### Documentation
+
+- lt frontend angular removes the repo files and the starter's identity too (lt CLI 1.58.6) ([56efc56](https://github.com/lenneTech/ng-base-starter/commit/56efc567c1f16602c2122e32ab490d1c90b16d11))
+- **migration:** the 22.1.1 orphan guide names the changed no-shutdown.mjs fixture ([66056e6](https://github.com/lenneTech/ng-base-starter/commit/66056e6680a66075ead6c76db6ff24b65bed7fad))
+
+### Build System
+
+- **deps:** pin @lenne.tech/ng-base 22.1.2, Angular 22.3.0, jsdom 31.0.1 ([b64f6f4](https://github.com/lenneTech/ng-base-starter/commit/b64f6f42df43647a2ee8729349aca67aad688d66))
+
 ### [22.1.1](https://github.com/lenneTech/ng-base-starter/compare/v22.1.0...v22.1.1) (2026-11-11)
 
 ### Highlights for adopters
