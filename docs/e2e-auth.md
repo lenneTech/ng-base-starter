@@ -172,6 +172,34 @@ trigger is deliberately not `CI`: an lt-monorepo's `app:test` runs this suite wi
 against an API whose module is off, where `ai-visibility` checks the off state and the MCP and
 prompt specs skip.
 
+### Social providers (`auth-social-sign-in.spec.ts`)
+
+Needs no provider: the spec answers every API request of the browser itself (`/iam/features`,
+`/iam/sign-in/social`, the session calls) and checks what the app sends and shows, including that
+no HTML document the server sends contains the provider's `error_description` (the login route
+answers it with a 302). A real round trip through a provider needs a configured tenant and is not
+part of the suite.
+
+The first paint is checked in a browser context with JavaScript off, which shows the server's HTML
+by itself. The silent sign-in is fixed at server start, so its six tests (first paint, marked tab,
+provider not listed, failed `/iam/features`, the round trip without provider session, sign-out in
+one tab and no attempt in a second tab of the same browser context) run only when the app was
+started with `NG_PUBLIC_AUTH_SILENT_PROVIDER=microsoft` and skip otherwise; one test, the first
+paint as the form, runs only without it; the other four pass either way.
+
+The server renders the login page with the feature flags it fetched itself and hands them to the
+browser (`provideLtAuth()` waits for them on the server). Against a real API without `microsoft`
+it therefore renders the form, correctly, and the browser stubs come too late. So the silent part
+needs an API the server cannot reach; the app on a port of its own, without any API:
+
+```bash
+NG_PUBLIC_SITE_URL=http://localhost:4391 NG_PUBLIC_API_URL=http://127.0.0.1:59998 \
+NG_API_URL=http://127.0.0.1:59998 NG_PUBLIC_API_PROXY=false NG_PUBLIC_APP_ENV=local \
+NG_PUBLIC_AUTH_SILENT_PROVIDER=microsoft npx playwright test tests/e2e/auth-social-sign-in.spec.ts
+```
+
+The same command without `NG_PUBLIC_AUTH_SILENT_PROVIDER` runs the other five.
+
 ## Configuration scenarios
 
 The suite detects the live configuration via `GET /iam/features` and adapts — it skips steps

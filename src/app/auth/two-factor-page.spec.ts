@@ -13,6 +13,7 @@ import { provideRouter, Router } from '@angular/router';
 import { LtErrorTranslationService, LtToastService, type LtToastOptions } from '@lenne.tech/ng-base';
 import { type LtAuthResponse, LtAuthService } from '@lenne.tech/ng-base/auth';
 
+import { SIGNED_OUT_KEY, SILENT_ATTEMPTED_KEY } from './social-sign-in-marks';
 import { TwoFactorPage } from './two-factor-page';
 
 async function settle(fixture: ComponentFixture<unknown>): Promise<void> {
@@ -91,5 +92,30 @@ describe('TwoFactorPage: refused second factor', () => {
     const { toasts } = await submitCode({ error: { message: '#PROJ_0001: Gesperrt', status: 403 } });
 
     expect(toasts).toEqual([expect.objectContaining({ description: 'übersetzt: #PROJ_0001: Gesperrt' })]);
+  });
+});
+
+/** The marks of the silent sign-in through a social provider (`social-sign-in-marks.ts`); Nuxt: `auth-2fa.test.ts`. */
+describe('TwoFactorPage and the marks of the silent sign-in', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+    sessionStorage.setItem(SILENT_ATTEMPTED_KEY, '1');
+    localStorage.setItem(SIGNED_OUT_KEY, '1');
+  });
+
+  const marks = () => [sessionStorage.getItem(SILENT_ATTEMPTED_KEY), localStorage.getItem(SIGNED_OUT_KEY)];
+
+  it('clears them once the code is accepted', async () => {
+    const { navigateByUrl } = await submitCode({ data: { user: { email: 'max@example.com', id: 'u1' } }, error: null }, '/app/x');
+
+    expect(navigateByUrl).toHaveBeenCalledWith('/app/x');
+    expect(marks()).toEqual([null, null]);
+  });
+
+  it('keeps them when the code is refused', async () => {
+    await submitCode({ error: { code: 'INVALID_CODE', message: 'Invalid code', status: 401 } });
+
+    expect(marks()).toEqual(['1', '1']);
   });
 });

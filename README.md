@@ -65,6 +65,21 @@ with screenshot and recent console/network activity in Linear. It needs the Line
 (`NG_LINEAR_API_KEY`, `NG_LINEAR_TEAM_NAME`, `NG_LINEAR_PROJECT_NAME`); `NG_PUBLIC_LT_BUG_ENABLED=true|false` overrides
 the stage rule, `NG_PUBLIC_LT_BUG_*` adjusts the button (see `.env.example`). Without `NG_PUBLIC_APP_ENV` it stays off.
 
+**Sign-in through a social provider (SSO).** Configure the provider in the API (`betterAuth.socialProviders.<id>` in
+nest-server, for example `microsoft` with client id, client secret, tenant id and `disableProfilePhoto: true`; redirect
+URI at the provider: `<API URL>/iam/callback/<id>`). The tenant id needs nest-server 12.10.0 or later: older versions
+hand Better Auth only client id, client secret and `disableSignUp`, drop `tenantId` without a warning, and Microsoft
+then admits accounts of every organization. Take 12.10.1 or later: the security release on top of 12.10.0 closes
+unauthenticated DoS paths in the GraphQL upload parser and the complexity check. Once configured, `GET /iam/features`
+lists the provider, and the login page shows a button "Mit <Name> anmelden" for it; `/auth/callback` finishes the
+sign-in. With `NG_PUBLIC_AUTH_SILENT_PROVIDER=<id>`
+the login page also tries once per tab to take over an existing provider session without showing anything
+(`prompt=none`); without one, the form stays without a message. With that setting the page opens with "Anmeldung wird
+geprüft …" instead of the form, already in the server's HTML, and shows the form as soon as it knows the attempt will
+not run. After "Abmelden" no tab of this browser signs in silently until the next completed sign-in. A refused account
+sees "Kein Zugang"; the provider's own error text never reaches the page, the server redirects it out of the URL
+before rendering. Details: `CLAUDE.md`, rule 13 of "Authentication rules".
+
 **No self sign-up? Close it in the API, not only in the app.** Deleting the registration page
 (`src/app/auth/register-page.*` and its route in `src/app/app.routes.ts`) or its link removes the form, not the
 endpoint: `POST /iam/sign-up/email` stays open, and anybody can create an account with a plain request. A project that

@@ -95,7 +95,7 @@ in `src/core/VENDOR.md`; project-specific code stays outside `src/core/`.
 | UI            | `@lenne.tech/ng-base/ui` (Spartan-based components, toast, dialogs, color mode), `@ng-icons` + Lucide             |
 | Forms         | Signal Forms (`@angular/forms/signals`) + Valibot via `validateStandardSchema`                                    |
 | API client    | `@hey-api/openapi-ts` with `@hey-api/client-angular` and the `@angular/common` plugin (`httpResource`)            |
-| Auth          | Better Auth through `@lenne.tech/ng-base/auth` (cookie and JWT mode)                                              |
+| Auth          | Better Auth through `@lenne.tech/ng-base/auth` (cookie and JWT mode, social providers / SSO)                      |
 | Tests         | Vitest (`ng test` for specs next to the code, plain Vitest for `tests/unit/`), Playwright E2E                     |
 | Lint / format | oxlint (all TypeScript, type-aware), angular-eslint (templates only), oxfmt                                       |
 
@@ -169,6 +169,7 @@ browser: `NG_PUBLIC_API_URL` or the `/api` proxy). Starter values beside ng-base
 | `NG_PUBLIC_APP_COMMIT` (fallback `APP_VERSION_COMMIT`)               | public          | build identity for `/app/admin/system`                                                   |
 | `NG_PUBLIC_STORAGE_PREFIX`, `NG_PUBLIC_COOKIE_PREFIX`                | public          | storage namespace, backend cookie prefix                                                 |
 | `NG_PUBLIC_PLAUSIBLE_API_HOST`                                       | public          | analytics host; empty means no tracker at all                                            |
+| `NG_PUBLIC_AUTH_SILENT_PROVIDER`                                     | public          | social provider of the silent sign-in on the login page (e.g. `microsoft`); empty: off   |
 | `NG_ALLOWED_HOSTS`                                                   | server          | extra host names the SSR engine accepts (Angular answers 400 to any other `Host`)        |
 | `NG_TRUST_PROXY_HEADERS`                                             | server          | proxy headers SSR trusts (default `x-forwarded-host,x-forwarded-proto`); others dropped  |
 | `NG_PUBLIC_LT_BUG_ENABLED`                                           | public          | bug.lt reporter on/off per stage; default: on outside production, off without a stage    |
@@ -229,6 +230,29 @@ Dialogs and other overlays: `provideLtUiOverlayDefaults()` sits in the `provider
     `betterAuth.emailAndPassword.disableSignUp: true` in the API's config (from nest-server 12.3.0 this covers social
     providers too). `GET /iam/features` then reports `signUpEnabled: false`: the login page hides its "Registrieren"
     link and `/auth/register` sends the visitor to the login.
+13. Sign-in through a social provider (`src/app/auth/social-*.ts`, port of nuxt-base-starter #58). The provider is
+    configured in the API (`betterAuth.socialProviders.<id>`, redirect URI `<API URL>/iam/callback/<id>`, app origin in
+    `trustedOrigins`); `GET /iam/features` lists it in `socialProviders` and the login page shows a button for it.
+    - `callbackURL` (`/auth/callback?redirect=…`) and `errorCallbackURL` (`/auth/login?redirect=…`) are built with
+      `appUrl()` from a fixed path and `safeRedirectTarget()`, never from the raw query.
+    - `/auth/callback` (no `ltAuthGuard`) goes on only when `validateSession()` is true AND
+      `LtAuthStateService.readState()` finds the user in the `lt-auth-state` cookie, where a reload reads it; otherwise
+      `clearUser()` (`guestGuard` reads the user from memory and would send the visitor on) and
+      `/auth/login?error=session_missing&redirect=…`. Reached with `error`, the login page never tries silently, so a
+      refused cookie cannot loop.
+    - `?error=` is read once, mapped to a fixed German text (`socialSignInError()`, shown as `lt-notice` with
+      `role="alert"`) and removed from the URL. `login_required`, `interaction_required`, `consent_required` and
+      `account_selection_required` show the form without a message (OIDC Core 3.1.2.6); unknown codes are named only
+      when they match `^[A-Za-z0-9_]{1,64}$`. Never render `error_description` or any other query text:
+      `signInErrorTextGuard` (on the login route after `guestGuard`) removes it before rendering, a 302 on the server.
+    - Silent attempt (`NG_PUBLIC_AUTH_SILENT_PROVIDER`, opt-in): `prompt=none`, once per tab ("attempted" mark in
+      `sessionStorage`), never after "Abmelden" in any tab until the next completed sign-in ("signed out" mark in
+      `localStorage`). The mark is set and read back before the request; blocked storage means no attempt. With the
+      setting the server renders "Anmeldung wird geprüft …" and the card `hidden`; the form appears once a mark, blocked
+      storage, a provider list without the provider, a failed `/iam/features` or three seconds without an answer rule
+      the attempt out. A page restored from the back/forward cache frees buttons and form.
+    - Every new sign-out call site sets `markSignedOut()` before signing out (`tests/unit/auth/sign-out-marks.test.ts`
+      finds them); every new way to complete a sign-in calls `clear()` (password, passkey, 2FA, callback do).
 
 Route guards read the client-writable `lt-auth-state` cookie and are **UI gates only**; authorization is the API's job.
 Admin check: `roles` contains `admin` or `role === 'admin'`.

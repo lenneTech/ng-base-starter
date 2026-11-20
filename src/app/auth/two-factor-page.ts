@@ -11,6 +11,7 @@ import { errorText } from '../shared/error-text';
 import { fieldError } from '../shared/field-error';
 import { twoFactorSchema, type TwoFactorModel } from './auth-schemas';
 import { safeRedirectTarget } from './safe-redirect-target';
+import { injectSocialSignInMarks } from './social-sign-in-marks';
 
 /**
  * Better Auth's refusals of the second factor that are not a wrong code. They carry no `#…_0000:` marker, so
@@ -44,6 +45,7 @@ export class TwoFactorPage {
 
   private readonly auth = inject(LtAuthService);
   private readonly errors = inject(LtErrorTranslationService);
+  private readonly marks = injectSocialSignInMarks();
   private readonly router = inject(Router);
   private readonly toast = inject(LtToastService);
 
@@ -85,6 +87,8 @@ export class TwoFactorPage {
         }
         return undefined;
       }
+      // Signed in: a later visit after the session expired may try the silent sign-in again (`social-sign-in-marks.ts`).
+      this.marks.clear();
       await this.router.navigateByUrl(this.redirectTarget());
     } catch {
       this.toast.show({ color: 'error', description: 'Die Bestätigung ist gerade nicht möglich. Bitte versuche es später erneut.', title: 'Bestätigung fehlgeschlagen' });

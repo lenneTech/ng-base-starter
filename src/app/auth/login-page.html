@@ -1,34 +1,53 @@
-<lt-page-card class="w-full max-w-md" icon="lucideUser" title="Anmelden">
-  <form [formRoot]="loginForm" class="flex flex-col gap-4">
-    <lt-form-field for="login-email" label="E-Mail" [error]="fieldError(loginForm.email)" [required]="true">
-      <input hlmInput id="login-email" type="email" autocomplete="username" placeholder="E-Mail eingeben" [formField]="loginForm.email" aria-describedby="login-email-error" />
-    </lt-form-field>
+<div class="w-full max-w-md">
+  <!-- Always in the DOM, so screen readers announce the text when it appears. -->
+  <p role="status" [class]="silentChecking() ? 'text-center text-muted-foreground' : 'sr-only'">{{ silentChecking() ? 'Anmeldung wird geprüft …' : '' }}</p>
 
-    <lt-form-field for="login-password" label="Passwort" [error]="fieldError(loginForm.password)" [required]="true">
-      <lt-password-input id="login-password" autocomplete="current-password" placeholder="Passwort eingeben" [formField]="loginForm.password" />
-    </lt-form-field>
-    <a routerLink="/auth/forgot-password" class="-mt-2 self-end text-sm font-medium text-primary hover:underline">Passwort vergessen?</a>
-
-    <button hlmBtn type="submit" class="w-full" [disabled]="loading()">Anmelden</button>
-  </form>
-
-  <div ltPageCardFooter class="flex flex-col gap-4">
-    <div class="flex items-center gap-3" role="presentation">
-      <hlm-separator class="flex-1" />
-      <span class="text-sm text-muted-foreground">oder</span>
-      <hlm-separator class="flex-1" />
-    </div>
-
-    <button hlmBtn variant="outline" type="button" class="w-full" [disabled]="passkeyLoading()" (click)="signInWithPasskey()">
-      <ng-icon name="lucideKeyRound" aria-hidden="true" />
-      Mit Passkey anmelden
-    </button>
-
-    @if (signUpEnabled()) {
-      <p class="text-center text-sm text-muted-foreground">
-        Noch kein Konto?
-        <a routerLink="/auth/register" class="font-medium text-primary hover:underline">Registrieren</a>
-      </p>
+  <!-- `hidden` while the silent attempt waits or runs: not visible, not focusable, also in the server's HTML. -->
+  <lt-page-card class="w-full" icon="lucideUser" title="Anmelden" [attr.hidden]="silentChecking() ? '' : null">
+    @if (socialError(); as error) {
+      <!-- role="alert" (lt-notice, variant error): `/auth/callback` comes here by a client-side navigation, so neither
+           focus nor the title change; the role is what announces the failure. -->
+      <lt-notice class="mb-4" variant="error" [title]="error.title">{{ error.description }}</lt-notice>
     }
-  </div>
-</lt-page-card>
+
+    <form [formRoot]="loginForm" class="flex flex-col gap-4">
+      <lt-form-field for="login-email" label="E-Mail" [error]="fieldError(loginForm.email)" [required]="true">
+        <input hlmInput id="login-email" type="email" autocomplete="username" placeholder="E-Mail eingeben" [formField]="loginForm.email" aria-describedby="login-email-error" />
+      </lt-form-field>
+
+      <lt-form-field for="login-password" label="Passwort" [error]="fieldError(loginForm.password)" [required]="true">
+        <lt-password-input id="login-password" autocomplete="current-password" placeholder="Passwort eingeben" [formField]="loginForm.password" />
+      </lt-form-field>
+      <a routerLink="/auth/forgot-password" class="-mt-2 self-end text-sm font-medium text-primary hover:underline">Passwort vergessen?</a>
+
+      <button hlmBtn type="submit" class="w-full" [disabled]="loading()">Anmelden</button>
+    </form>
+
+    <div ltPageCardFooter class="flex flex-col gap-4">
+      <div class="flex items-center gap-3" role="presentation">
+        <hlm-separator class="flex-1" />
+        <span class="text-sm text-muted-foreground">oder</span>
+        <hlm-separator class="flex-1" />
+      </div>
+
+      @for (provider of socialButtons(); track provider.id) {
+        <button hlmBtn variant="outline" type="button" class="w-full" [disabled]="socialLoading() !== null" (click)="signInWithProvider(provider.id)">
+          <ng-icon [name]="provider.icon" aria-hidden="true" />
+          Mit {{ provider.label }} anmelden
+        </button>
+      }
+
+      <button hlmBtn variant="outline" type="button" class="w-full" [disabled]="passkeyLoading()" (click)="signInWithPasskey()">
+        <ng-icon name="lucideKeyRound" aria-hidden="true" />
+        Mit Passkey anmelden
+      </button>
+
+      @if (signUpEnabled()) {
+        <p class="text-center text-sm text-muted-foreground">
+          Noch kein Konto?
+          <a routerLink="/auth/register" class="font-medium text-primary hover:underline">Registrieren</a>
+        </p>
+      }
+    </div>
+  </lt-page-card>
+</div>

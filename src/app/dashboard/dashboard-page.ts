@@ -5,6 +5,8 @@ import { HlmBadge, HlmButton, HlmCardImports } from '@lenne.tech/ng-base/ui';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideLogOut, lucideShieldCheck, lucideUser } from '@ng-icons/lucide';
 
+import { injectSocialSignInMarks } from '../auth/social-sign-in-marks';
+
 /** A quick-access card of the dashboard. */
 interface QuickAccess {
   description: string;
@@ -22,6 +24,7 @@ interface QuickAccess {
 })
 export class DashboardPage {
   protected readonly auth = inject(LtAuthService);
+  private readonly marks = injectSocialSignInMarks();
   private readonly router = inject(Router);
 
   protected readonly pages: readonly QuickAccess[] = [
@@ -29,6 +32,9 @@ export class DashboardPage {
   ];
 
   protected async signOut(): Promise<void> {
+    // Keeps the login page, in this tab and every other of this browser, from signing the visitor straight back in
+    // through the provider session, which outlives the app's (`auth/social-sign-in-marks.ts`).
+    this.marks.markSignedOut();
     await this.auth.signOut();
     await this.router.navigateByUrl('/auth/login');
   }

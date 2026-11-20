@@ -13,17 +13,26 @@ import { starterRuntimeConfig } from '../../../src/server/starter-runtime-config
 describe('starterRuntimeConfig (the starter values next to ng-base runtime config)', () => {
   it('passes the Plausible host on, trimmed', () => {
     expect(starterRuntimeConfig({ NG_PUBLIC_PLAUSIBLE_API_HOST: '  https://plausible.example.com ' })).toEqual({
+      authSilentProvider: '',
       plausibleApiHost: 'https://plausible.example.com',
     });
   });
 
   it('has no host without the variable or with blanks only, so no tracker starts and nothing falls back to plausible.io', () => {
-    expect(starterRuntimeConfig({})).toEqual({ plausibleApiHost: '' });
-    expect(starterRuntimeConfig({ NG_PUBLIC_PLAUSIBLE_API_HOST: '   ' })).toEqual({ plausibleApiHost: '' });
+    expect(starterRuntimeConfig({})).toEqual({ authSilentProvider: '', plausibleApiHost: '' });
+    expect(starterRuntimeConfig({ NG_PUBLIC_PLAUSIBLE_API_HOST: '   ' })).toEqual({ authSilentProvider: '', plausibleApiHost: '' });
   });
 
-  it('ignores the Nuxt variable name, which an Angular image never reads', () => {
-    expect(starterRuntimeConfig({ NUXT_PLAUSIBLE_API_URL: 'https://plausible.example.com' })).toEqual({ plausibleApiHost: '' });
+  it('ignores the Nuxt variable names, which an Angular image never reads', () => {
+    expect(starterRuntimeConfig({ NUXT_PLAUSIBLE_API_URL: 'https://plausible.example.com', NUXT_PUBLIC_AUTH_SILENT_PROVIDER: 'microsoft' })).toEqual({
+      authSilentProvider: '',
+      plausibleApiHost: '',
+    });
+  });
+
+  it('passes the provider of the silent sign-in on, trimmed; empty means off', () => {
+    expect(starterRuntimeConfig({ NG_PUBLIC_AUTH_SILENT_PROVIDER: ' microsoft ' })).toEqual({ authSilentProvider: 'microsoft', plausibleApiHost: '' });
+    expect(starterRuntimeConfig({ NG_PUBLIC_AUTH_SILENT_PROVIDER: '   ' })).toEqual({ authSilentProvider: '', plausibleApiHost: '' });
   });
 });
 

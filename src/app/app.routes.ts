@@ -3,6 +3,7 @@ import { ltAuthGuard, ltRoleGuard, ltSystemSetupGuard } from '@lenne.tech/ng-bas
 
 import { aiRouteGuard } from './ai/ai-route-guard';
 import { guestGuard } from './auth/guest-guard';
+import { signInErrorTextGuard } from './auth/sign-in-error-text-guard';
 
 /**
  * The routes of the Nuxt template, path for path (plan §4 row 28). Pages and the two layout shells are lazy, so the
@@ -21,10 +22,13 @@ export const routes: Routes = [
         children: [
           {
             path: 'login',
-            canActivate: [guestGuard],
+            // `signInErrorTextGuard` after `guestGuard`: a signed-in visitor goes straight to the deep link.
+            canActivate: [guestGuard, signInErrorTextGuard],
             loadComponent: () => import('./auth/login-page').then((m) => m.LoginPage),
             title: 'Anmeldung',
           },
+          // The end of a sign-in through a social provider; no `ltAuthGuard`, the user is not loaded yet.
+          { path: 'callback', loadComponent: () => import('./auth/callback-page').then((m) => m.CallbackPage), title: 'Anmeldung' },
           // Removing this route leaves sign-up open in the API: close it there (README, "No self sign-up?").
           { path: 'register', loadComponent: () => import('./auth/register-page').then((m) => m.RegisterPage), title: 'Registrierung' },
           {

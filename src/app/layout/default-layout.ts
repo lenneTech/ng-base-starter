@@ -17,6 +17,7 @@ import {
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideClipboardList, lucideCode, lucideLogIn, lucideLogOut, lucideSettings, lucideShield, lucideSparkles } from '@ng-icons/lucide';
 
+import { injectSocialSignInMarks } from '../auth/social-sign-in-marks';
 import { BRAND_ICONS } from '../shared/brand-icons';
 import { SITE_NAME, SITE_REPO_URL } from '../shared/site';
 
@@ -44,6 +45,7 @@ import { SITE_NAME, SITE_REPO_URL } from '../shared/site';
 export class DefaultLayout {
   protected readonly auth = inject(LtAuthService);
   private readonly aiStatus = inject(LtAiStatusService);
+  private readonly marks = injectSocialSignInMarks();
   private readonly router = inject(Router);
 
   protected readonly siteName = SITE_NAME;
@@ -77,6 +79,9 @@ export class DefaultLayout {
   }
 
   protected async signOut(): Promise<void> {
+    // Keeps the login page, in this tab and every other of this browser, from signing the visitor straight back in
+    // through the provider session, which outlives the app's (`auth/social-sign-in-marks.ts`).
+    this.marks.markSignedOut();
     await this.auth.signOut();
     await this.router.navigateByUrl('/auth/login');
   }

@@ -22,8 +22,13 @@ function settingsCode(name: string): string {
   return readFileSync(join(AUTH_DIR, '..', 'settings', `${name}.ts`), 'utf8');
 }
 
-/** Pages that legitimately never surface a backend error. Empty on purpose; an entry needs a written reason. */
-const EXEMPT: readonly string[] = [];
+/** Pages that legitimately never surface a backend error. An entry needs a written reason. */
+const EXEMPT: readonly string[] = [
+  // The last step of a sign-in through a social provider. It shows one fixed status text and asks `validateSession()`,
+  // which answers true or false, never an error message. Without a session it sends the visitor to the login page with
+  // a code of its own, and `login-page` (not exempt) words it.
+  'callback-page',
+];
 
 describe('auth pages route errors through translateError', () => {
   it('finds the auth pages at all', () => {
