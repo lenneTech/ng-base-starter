@@ -1,6 +1,9 @@
-# Security headers
-
-What this template sends, what it deliberately does not, and how to add the rest.
+---
+title: Security headers
+description: What the SSR server sends, what it deliberately does not, and how to add the rest.
+navigation:
+  icon: i-lucide-shield
+---
 
 ## What is sent, and from where
 

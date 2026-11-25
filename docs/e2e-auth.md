@@ -1,4 +1,9 @@
-# Auth E2E Suite — prerequisites and configuration scenarios
+---
+title: Auth E2E suite
+description: Prerequisites, backend options and configuration scenarios for the Playwright auth suite.
+navigation:
+  icon: i-lucide-test-tube
+---
 
 How to run `tests/e2e/auth-lifecycle.spec.ts` and `tests/e2e/auth-feature-order.spec.ts`, and
 against which backend configurations.
