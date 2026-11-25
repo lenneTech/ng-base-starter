@@ -3,6 +3,21 @@
 All notable changes to this project are documented in this file. The 14.x line (Angular 14, `@nguniversal`, Bootstrap) ends
 with version 14.34.0 at commit `7b85967` (last tag `v14.0.1`); its history stays in Git.
 
+### [22.1.3](https://github.com/lenneTech/ng-base-starter/compare/v22.1.2...v22.1.3) (2026-11-25)
+
+### Highlights for adopters
+
+- **`@lenne.tech/ng-base` 22.1.3: JWT mode survives switching 2FA, and cookie-only APIs get no `/iam/token` requests.** In JWT mode (`cookies: false` in the API) the security page's `setUser({ ...user, twoFactorEnabled })` dropped the app back to the cookie session, so the next request went out without the bearer and failed; it now stays in JWT mode. nest-server 12.11 binds a JWT to its session, and switching 2FA replaces the session: the app takes the new session's JWT from the first `verify-totp` when switching 2FA on (from 12.11.0), and from the `disable` answer when switching it off (from 12.11.1; against 12.11.0, turning 2FA off with `cookies: false` still signs the user out). With `cookies: false` every user signs in once more after the update to 12.11, because a JWT issued before 12.11.0 answers 401. Against an API that reports `jwt: false` in `GET /iam/features` the app no longer asks `/iam/token` for a JWT, which cost a 404 in the console on every sign-in and session check. A project only needs `"@lenne.tech/ng-base": "22.1.3"` and `pnpm install`; the starter's own code is unchanged. E2E in cookie and JWT mode against nest-server-starter 12.11.1: 77 passed each.
+- **Spartan brain 1.10.0 and tailwind-merge 3.7.1, as in ng-base.** brain removes no export; `aria-invalid` now follows the error state, which the helm layer already did.
+- **Tooling and pnpm 11.29.0, in step with ng-base and nuxt-base-starter 4.0.5.** oxlint 1.95.0, oxfmt 0.80.0 (no file reformatted), oxlint-tsgolint 7.0.2008, typescript-eslint 8.74.0, lint-staged 17.6.2, mongodb 7.9.1, and a lockfile refresh within the existing ranges (tldts and tldts-core 7.5.5 replace tldts 7.4.19 and the deprecated tldts-core 7.4.20). Copy the `packageManager` line into a project's `package.json` to take pnpm 11.29.0. Angular stays on 22.3.0 and `@playwright/test` on 1.65.1 (in step with the `v1.65.1-noble` images of lt-monorepo), both the newest releases. ng-base 22.1.3 is built with Angular 22.2.7 and leaves 22.3 out because of its new library builder; its peer range `^22.2.0` covers 22.3.0, so apps are not affected.
+- **Held on purpose:**
+  - better-auth and `@better-auth/passkey` 1.7.19, in step with nest-server-starter 12.11.1
+  - TypeScript 6.0.3, because Angular 22.3.0 requires `>=6.0 <6.1`
+
+### Build System
+
+- **deps:** pin @lenne.tech/ng-base 22.1.3, Spartan brain 1.10.0, pnpm 11.29.0 and tooling ([4102801](https://github.com/lenneTech/ng-base-starter/commit/4102801d02556f67163a04a3c7e4ca9f0d138d25))
+
 ### [22.1.2](https://github.com/lenneTech/ng-base-starter/compare/v22.1.1...v22.1.2) (2026-11-20)
 
 ### Highlights for adopters
