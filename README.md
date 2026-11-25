@@ -19,7 +19,8 @@ lt frontend angular
 ```
 
 Both copy this repository into `projects/app` (or the directory you name) and remove the repo-only files
-(`.github/`, `CHANGELOG.md`, `extras/`, `migration-guides/`). The project gets its own `package.json` identity:
+(`.github/`, `CHANGELOG.md`, `extras/`, `migration-guides/`, and the starter's own docs pages `docs/index.md`,
+`docs/.navigation.yml` and `docs/1.guide/`). The project gets its own `package.json` identity:
 version `0.0.0`, no `repository`, and the name `app` in a fullstack project or the directory name on its own. On its
 own it keeps `pnpm-lock.yaml`; in a fullstack project the monorepo's root lockfile replaces it.
 
@@ -105,6 +106,7 @@ from 22.0.4 on both match. A project generated from the starter has a version of
 
 ## More
 
+- `docs/index.md` and `docs/1.guide/`: the starter's docs, published on docs.lennetech.app
 - `CLAUDE.md` / `AGENTS.md`: structure, rules and conventions (for people and coding agents)
 - `docs/e2e-auth.md`: running the auth E2E suite and its backend scenarios
 - `docs/security-headers.md`: what the server sends and how to add a CSP

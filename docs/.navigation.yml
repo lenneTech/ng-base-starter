@@ -1,0 +1,7 @@
+# Section of this repository on docs.lennetech.app.
+# Starter-only: `lt frontend angular` and `lt fullstack init` remove this file, docs/index.md and docs/1.guide/
+# from a generated project (ANGULAR_STARTER_REPO_ONLY in lenneTech/cli). Docs a project needs too, such as
+# e2e-auth.md and security-headers.md, stay directly in docs/.
+title: ng-base-starter
+icon: i-lucide-layout-template
+description: Angular 22 starter with SSR, Tailwind CSS 4, ng-base and a nest-server backend, the template for Angular projects.
