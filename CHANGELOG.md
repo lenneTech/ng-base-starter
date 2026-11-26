@@ -3,6 +3,37 @@
 All notable changes to this project are documented in this file. The 14.x line (Angular 14, `@nguniversal`, Bootstrap) ends
 with version 14.34.0 at commit `7b85967` (last tag `v14.0.1`); its history stays in Git.
 
+### [22.1.4](https://github.com/lenneTech/ng-base-starter/compare/v22.1.3...v22.1.4) (2026-11-26)
+
+### Highlights for adopters
+
+- **`@lenne.tech/ng-base` 22.1.4: an app no longer looks signed in after its session ended on the server.** `validateSession()` signs out a cached user once `GET /iam/get-session` confirms that the API has no session for them (an expired or revoked session), so a reload shows the visitor signed out and the next guarded page asks for a sign-in and leads back. A timeout or network error keeps the user, and so does JWT mode with a stored JWT. A project only needs `"@lenne.tech/ng-base": "22.1.4"` and `pnpm install`. The new `tests/e2e/auth-session-ended.spec.ts` pins it: red with 22.1.3, green with 22.1.4.
+- **The pages offer only the sign-in methods `GET /iam/features` reports, as in the Nuxt template (nuxt-base-starter 4.0.6 and 4.0.7).** An API that signs in through social providers alone (`betterAuth.emailAndPassword.enabled: false`, nest-server 12.11.0+) reports `emailAndPassword: false`. The login page then drops the form, "Passwort vergessen?" and "Registrieren"; `/auth/register` and `/auth/forgot-password` send visitors to the login; `/app/settings/security` shows two-factor authentication and passkeys only while the API supports them; `?error=account_not_linked` points at the provider used before; `/auth/setup` says how the first admin signs in. Only an explicit `false` changes a page, so an API before 12.11.0 keeps everything as it was. Never use `trustedProviders` or a `mapProfileToUser` that sets `emailVerified` to link the first admin (nOAuth); see `docs/1.guide/3.configuration.md`. Guides: [22.1.4-sign-in-methods-from-features.md](migration-guides/22.1.4-sign-in-methods-from-features.md), [22.1.4-provider-only-pages.md](migration-guides/22.1.4-provider-only-pages.md).
+- **Known in this version, fixed in 22.1.5:** on a direct visit (a bookmark, an old link) the toast that explains the redirect of `/auth/register` and `/auth/forgot-password` is lost, because the deferred toaster clears earlier toasts when it starts. The redirect itself works. Take 22.1.5, which follows with `@lenne.tech/ng-base` 22.1.5.
+- **`check` survives a taken port.** `scripts/check-server-start.mjs` starts the built server again on new ports after `EADDRINUSE`, up to three times. Guide: [22.1.4-server-start-retry-and-ended-session-e2e.md](migration-guides/22.1.4-server-start-retry-and-ended-session-e2e.md).
+- **Spartan brain 1.10.1 as in ng-base, `@types/node` 26.6.7.** Held on purpose: better-auth and `@better-auth/passkey` 1.7.19 (in step with nest-server-starter 12.11.2), TypeScript 6.0.3 (Angular 22.3.0 requires `>=6.0 <6.1`).
+
+### Features
+
+- **auth:** the pages offer only the sign-in methods /iam/features reports, as in the Nuxt template ([1bce9ed](https://github.com/lenneTech/ng-base-starter/commit/1bce9ed626923d33d84fe3d14e2611ab7f10af65))
+
+### Bug Fixes
+
+- **check:** start the server again after EADDRINUSE ([5cc6d8e](https://github.com/lenneTech/ng-base-starter/commit/5cc6d8e834327f5d13f630a39c142dc73f340f00))
+- **ci:** docs rebuild reads the GitLab host from an organization secret ([90ab197](https://github.com/lenneTech/ng-base-starter/commit/90ab197826ff5293d759602d6cc1283fe7b23d78))
+
+### Documentation
+
+- follow the new docs convention (#4) ([d2bedf8](https://github.com/lenneTech/ng-base-starter/commit/d2bedf824e780abcc1d4ed96dd95045ffed0d9b1))
+
+### Tests
+
+- **e2e:** the app stays signed in after switching 2FA on and off ([bada852](https://github.com/lenneTech/ng-base-starter/commit/bada85251748ea071fecca9dafcc57b3d124153a))
+
+### Build System
+
+- **deps:** pin @lenne.tech/ng-base 22.1.4, Spartan brain 1.10.1 and @types/node 26.6.7 ([d134d78](https://github.com/lenneTech/ng-base-starter/commit/d134d78a9354f0e26f455bd12214b0e147fe9f93))
+
 ### [22.1.3](https://github.com/lenneTech/ng-base-starter/compare/v22.1.2...v22.1.3) (2026-11-25)
 
 ### Highlights for adopters
