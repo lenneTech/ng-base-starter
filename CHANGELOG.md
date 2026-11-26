@@ -3,6 +3,17 @@
 All notable changes to this project are documented in this file. The 14.x line (Angular 14, `@nguniversal`, Bootstrap) ends
 with version 14.34.0 at commit `7b85967` (last tag `v14.0.1`); its history stays in Git.
 
+### [22.1.5](https://github.com/lenneTech/ng-base-starter/compare/v22.1.4...v22.1.5) (2026-11-26)
+
+### Highlights for adopters
+
+- **`@lenne.tech/ng-base` 22.1.5: a toast raised before the deferred toaster rendered is no longer lost.** The starter loads `<hlm-toaster>` in a `@defer (on idle)` block, and Spartan's toaster clears every toast when it starts. On a direct visit to `/auth/register` or `/auth/forgot-password` against an API without e-mail and password, the toast explaining the redirect was gone in 22.1.4. ng-base now holds such a toast until the toaster has rendered and then shows it once. A project only needs `"@lenne.tech/ng-base": "22.1.5"` and `pnpm install`; the starter's own code is unchanged.
+- **`@types/node` 26.6.10**, and a lockfile refresh within the existing ranges (tldts and tldts-core 7.5.6). Held on purpose: better-auth and `@better-auth/passkey` 1.7.19 (in step with nest-server-starter 12.11.3), TypeScript 6.0.3 (Angular 22.3.0 requires `>=6.0 <6.1`).
+
+### Build System
+
+- **deps:** pin @lenne.tech/ng-base 22.1.5 and @types/node 26.6.10 ([89b481f](https://github.com/lenneTech/ng-base-starter/commit/89b481f03f88e9c83eab8f1ea990cf7da13590a0))
+
 ### [22.1.4](https://github.com/lenneTech/ng-base-starter/compare/v22.1.3...v22.1.4) (2026-11-26)
 
 ### Highlights for adopters
