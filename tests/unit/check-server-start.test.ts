@@ -10,28 +10,48 @@
  * test only.
  */
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { connect } from 'node:net';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { isCleanShutdown, isKillablePid, isReadyOutput, isRenderedStatus, killTreePlan, NG_DEFAULTS, parseArgs, PID1_SIGNAL_PRELOAD } from '../../scripts/check-server-start.mjs';
+import {
+  isCleanShutdown,
+  isKillablePid,
+  isPortTakenOutput,
+  isReadyOutput,
+  isRenderedStatus,
+  killTreePlan,
+  NG_DEFAULTS,
+  parseArgs,
+  PID1_SIGNAL_PRELOAD,
+} from '../../scripts/check-server-start.mjs';
 
 const fixtures = join(import.meta.dirname, 'fixtures', 'server-start');
 const runner = join(import.meta.dirname, '..', '..', 'scripts', 'check-server-start.mjs');
 
-/** Run the CLI against a fixture; resolves to its exit code, output, the port it used and how long it ran. */
-function runFixture(entry: string, timeoutSeconds = 10, args: string[] = []): Promise<{ code: null | number; ms: number; output: string; port: number }> {
+/** Run the CLI against a fixture; resolves to its exit code, output, the ports it used and how long it ran. */
+function runFixture(
+  entry: string,
+  timeoutSeconds = 10,
+  args: string[] = [],
+  extraEnv: Record<string, string> = {},
+): Promise<{ code: null | number; ms: number; output: string; port: number; ports: number[] }> {
   // The CLI keeps an inherited NG_API_URL on purpose, and the CI test job sets one for the E2E
   // suite; the assertions here are about the default, so the fixture runs without it.
   const { NG_API_URL: _apiUrl, NG_PUBLIC_API_URL: _publicApiUrl, ...env } = process.env;
   return new Promise((resolve) => {
     const started = Date.now();
-    const child = spawn(process.execPath, [runner, `--entry=${entry}`, `--timeout=${timeoutSeconds}`, ...args], { cwd: fixtures, env });
+    const child = spawn(process.execPath, [runner, `--entry=${entry}`, `--timeout=${timeoutSeconds}`, ...args], { cwd: fixtures, env: { ...env, ...extraEnv } });
     let output = '';
     child.stdout.on('data', (d) => (output += d));
     child.stderr.on('data', (d) => (output += d));
-    child.once('close', (code) => resolve({ code, ms: Date.now() - started, output, port: Number(/Using free port: (\d+)/.exec(output)?.[1]) }));
+    child.once('close', (code) => {
+      // Every port the runner started the server on, in order; `port` is the last one.
+      const ports = [...output.matchAll(/Using free port: (\d+)/g)].map((match) => Number(match[1]));
+      resolve({ code, ms: Date.now() - started, output, port: ports.at(-1) ?? Number.NaN, ports });
+    });
   });
 }
 
@@ -185,6 +205,39 @@ describe('check-server-start CLI', () => {
     expect(code).toBe(1);
     expect(output).toMatch(/exited unexpectedly \(code 3/);
     expect(output).toMatch(/boom during boot/);
+  });
+
+  it('recognises a port another process had bound, as Node reports it', () => {
+    expect(isPortTakenOutput('Error: listen EADDRINUSE: address already in use 127.0.0.1:41235')).toBe(true);
+    expect(isPortTakenOutput('Node Express server listening on http://127.0.0.1:41235')).toBe(false);
+    expect(isPortTakenOutput('boom during boot')).toBe(false);
+    expect(NG_DEFAULTS.portAttempts).toBe(3);
+  });
+
+  it('starts the server again on a new port when another process took the first before the server bound it', async () => {
+    const marker = join(mkdtempSync(join(tmpdir(), 'server-start-')), 'first-start');
+    const { code, output, port, ports } = await runFixture('port-taken-once.mjs', 10, [], { FIXTURE_MARKER: marker });
+
+    expect(code, output).toBe(0);
+    expect(output).toMatch(/EADDRINUSE\), attempt 1 of 3: starting again on a new port/);
+    expect(ports).toHaveLength(2);
+    expect(ports[1]).not.toBe(ports[0]);
+    expect(await portAcceptsConnections(port)).toBe(false);
+  });
+
+  it('returns 1 when every attempt finds its port taken, and says why', async () => {
+    const { code, output, ports } = await runFixture('port-always-taken.mjs');
+
+    expect(code).toBe(1);
+    expect(ports).toHaveLength(3);
+    expect(output).toMatch(/could not bind a port in 3 attempts \(EADDRINUSE\)/);
+  });
+
+  it('does not start a server again that died for another reason', async () => {
+    const { code, ports } = await runFixture('crash.mjs');
+
+    expect(code).toBe(1);
+    expect(ports).toHaveLength(1);
   });
 
   it('returns 1 when the server never reports ready', async () => {

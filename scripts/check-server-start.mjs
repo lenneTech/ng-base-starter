@@ -15,7 +15,10 @@
  *      connections. `NG_API_URL` / `NG_PUBLIC_API_URL` default to it: the
  *      built server never reads `.env`, and an unreachable-but-hanging API URL
  *      would make the SSR fetch loop instead of failing fast.
- *   3. Spawns `node <entry>` with `<portEnv>=<port>` (no shell).
+ *   3. Spawns `node <entry>` with `<portEnv>=<port>` (no shell). The port is free when it is
+ *      allocated, not reserved: another process (a parallel check, a dev server, a test runner)
+ *      can bind it before the server does. A server that dies with EADDRINUSE before it is up
+ *      is therefore started again on newly allocated ports, up to `portAttempts` (3) times.
  *   4. "Up" = a line of server output matches one of `readyPatterns`.
  *   5. Then GETs `smokePath` (30 s timeout, redirects not followed). Only a
  *      2xx or 3xx counts: a bundle can listen and still throw on every render.
@@ -37,7 +40,8 @@
  *
  * Exit code: 0 when the server came up and rendered (and, with step 7, shut down
  * cleanly), 1 otherwise — boot timeout (`bootTimeoutMs`, default 60 s), early exit of
- * the server, a non-2xx/3xx response or no response at all, and with step 7 a server
+ * the server (EADDRINUSE only once every attempt of step 3 hit it), a non-2xx/3xx
+ * response or no response at all, and with step 7 a server
  * that outlives the shutdown limit or exits with anything but code 0. The last 30
  * lines of server output are printed on failure.
  */
@@ -59,6 +63,8 @@ export const NG_DEFAULTS = Object.freeze({
   bootTimeoutMs: 60_000,
   // The shim `scripts/build.mjs` writes next to Angular's `server.mjs` (the lt-monorepo contract).
   entry: `${OUTPUT_DIR}/server/index.mjs`,
+  /** Starts on new ports after an EADDRINUSE during boot, the first one included (step 3). */
+  portAttempts: 3,
   // `src/server.ts` parses PORT as an integer before it listens.
   portEnv: 'PORT',
   readyPatterns: [/listening on/i],
@@ -93,6 +99,15 @@ export const PID1_SIGNAL_PRELOAD = Object.freeze([
 /** Pure: whether the way a process ended counts as a clean shutdown — exit code 0, no signal. */
 export function isCleanShutdown(code, signal) {
   return code === 0 && (signal === null || signal === undefined);
+}
+
+/**
+ * Pure: whether the server's output says its port was taken. Node reports a failed bind as
+ * `listen EADDRINUSE: address already in use <host>:<port>`, and the Angular SSR server lets that
+ * error end the process before it prints a ready line.
+ */
+export function isPortTakenOutput(text) {
+  return /\bEADDRINUSE\b/.test(text);
 }
 
 /** Pure: whether a chunk of server output signals that it is listening. */
@@ -206,56 +221,72 @@ async function shutdownWithin(child, exited, timeoutMs) {
 export async function run(options = {}, log = console.log) {
   const opts = { ...NG_DEFAULTS, ...options };
   const cwd = opts.cwd ?? process.cwd();
-  const lines = [];
+  // The output of the current attempt; a retry starts with an empty one.
+  let lines = [];
   const tail = (n) => lines.slice(-n).join('\n');
+  const checkShutdown = opts.shutdownTimeoutMs !== undefined && process.platform !== 'win32';
 
   let port;
-  let closedPort;
-  try {
-    port = await allocPort();
-    closedPort = await allocDistinctPort(port);
-  } catch (err) {
-    log(String(err?.message || err));
-    return 1;
-  }
-  log(`Using free port: ${port}`);
+  let child;
+  let exited;
+  let outcome;
+  for (let attempt = 1; ; attempt++) {
+    let closedPort;
+    try {
+      port = await allocPort();
+      closedPort = await allocDistinctPort(port);
+    } catch (err) {
+      log(String(err?.message || err));
+      return 1;
+    }
+    log(`Using free port: ${port}`);
 
-  const apiUrl = process.env.NG_API_URL || `http://127.0.0.1:${closedPort}`;
-  const env = {
-    ...process.env,
-    NG_API_URL: apiUrl,
-    NG_PUBLIC_API_URL: process.env.NG_PUBLIC_API_URL || apiUrl,
-    [opts.portEnv]: String(port),
-  };
-  const checkShutdown = opts.shutdownTimeoutMs !== undefined && process.platform !== 'win32';
-  const nodeArgs = [...(checkShutdown ? PID1_SIGNAL_PRELOAD : []), resolve(cwd, opts.entry)];
-  const child = spawn(process.execPath, nodeArgs, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
-  // Settles once the process is gone, however it ended; the shutdown step waits on it.
-  const exited = new Promise((settle) => child.once('exit', (code, signal) => settle({ code, signal })));
+    const apiUrl = process.env.NG_API_URL || `http://127.0.0.1:${closedPort}`;
+    const env = {
+      ...process.env,
+      NG_API_URL: apiUrl,
+      NG_PUBLIC_API_URL: process.env.NG_PUBLIC_API_URL || apiUrl,
+      [opts.portEnv]: String(port),
+    };
+    const nodeArgs = [...(checkShutdown ? PID1_SIGNAL_PRELOAD : []), resolve(cwd, opts.entry)];
+    lines = [];
+    const current = spawn(process.execPath, nodeArgs, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
+    child = current;
+    // Settles once the process is gone, however it ended; the shutdown step waits on it.
+    exited = new Promise((settle) => current.once('exit', (code, signal) => settle({ code, signal })));
 
-  // Settles once with the first of: ready, exit, spawn error, timeout.
-  const outcome = await new Promise((settle) => {
-    const timer = setTimeout(() => settle({ kind: 'timeout' }), opts.bootTimeoutMs);
-    const done = (result) => {
-      clearTimeout(timer);
-      settle(result);
-    };
-    let pending = '';
-    const onData = (chunk) => {
-      pending += chunk.toString();
-      const parts = pending.split(/\r?\n/);
-      pending = parts.pop();
-      lines.push(...parts);
-      if (isReadyOutput(parts.join('\n') + '\n' + pending, opts.readyPatterns)) done({ kind: 'ready' });
-    };
-    child.stdout.on('data', onData);
-    child.stderr.on('data', onData);
-    child.once('exit', (code, signal) => {
-      if (pending) lines.push(pending);
-      done({ code, kind: 'exited', signal });
+    // Settles once with the first of: ready, exit, spawn error, timeout.
+    outcome = await new Promise((settle) => {
+      const timer = setTimeout(() => settle({ kind: 'timeout' }), opts.bootTimeoutMs);
+      const done = (result) => {
+        clearTimeout(timer);
+        settle(result);
+      };
+      let pending = '';
+      const onData = (chunk) => {
+        pending += chunk.toString();
+        const parts = pending.split(/\r?\n/);
+        pending = parts.pop();
+        lines.push(...parts);
+        if (isReadyOutput(parts.join('\n') + '\n' + pending, opts.readyPatterns)) done({ kind: 'ready' });
+      };
+      current.stdout.on('data', onData);
+      current.stderr.on('data', onData);
+      current.once('exit', (code, signal) => {
+        if (pending) lines.push(pending);
+        done({ code, kind: 'exited', signal });
+      });
+      current.once('error', (err) => done({ error: err, kind: 'error' }));
     });
-    child.once('error', (err) => done({ error: err, kind: 'error' }));
-  });
+
+    // Another process bound the port between its allocation and the server's own bind. The server is
+    // gone already, so nothing has to be stopped; the next attempt allocates new ports.
+    if (outcome.kind === 'exited' && isPortTakenOutput(lines.join('\n')) && attempt < opts.portAttempts) {
+      log(`Port ${port} was taken before the server bound it (EADDRINUSE), attempt ${attempt} of ${opts.portAttempts}: starting again on a new port`);
+      continue;
+    }
+    break;
+  }
 
   try {
     if (outcome.kind === 'ready') {
@@ -294,6 +325,14 @@ export async function run(options = {}, log = console.log) {
       }
       log(`Server shut down cleanly on SIGTERM in ${(ended.ms / 1000).toFixed(1)} s - check complete`);
       return 0;
+    }
+    if (outcome.kind === 'exited' && isPortTakenOutput(lines.join('\n'))) {
+      log(
+        `Server could not bind a port in ${opts.portAttempts} attempts (EADDRINUSE): something takes the ports this runner ` +
+          'allocates before the server binds them, for example many servers starting at once. Full log of the last attempt:',
+      );
+      log(lines.join('\n'));
+      return 1;
     }
     if (outcome.kind === 'exited') {
       log(`Server process exited unexpectedly (code ${outcome.code ?? '-'}, signal ${outcome.signal ?? '-'}). Full log:`);
