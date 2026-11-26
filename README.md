@@ -88,6 +88,20 @@ is invitation-only sets `betterAuth.emailAndPassword.disableSignUp: true` in the
 it closes sign-up through social providers too). `GET /iam/features` then reports `signUpEnabled: false`, the login
 page hides its "Registrieren" link, and `/auth/register` sends visitors to the login, so the page can stay.
 
+**Sign-in through providers alone.** With `betterAuth.emailAndPassword.enabled: false` (nest-server 12.11.0+),
+`GET /iam/features` reports `emailAndPassword: false`, and with it `passkey: false` and `twoFactor: false` unless the API
+keeps a factor on deliberately. The login page then shows only the provider buttons: no form, no "Passwort vergessen?",
+no "Registrieren", and the passkey button only while `passkey` is not `false`. With no method left it says "Anmeldung
+nicht möglich" instead of showing an empty card. `/auth/register` sends visitors to the login; with sign-up open, the
+account comes with the first sign-in through a provider. An API before 12.11.0 does not report the field, and the form
+stays. The server HTML already shows the right methods, so nothing appears or disappears after load.
+`/auth/forgot-password` sends visitors to the login too, and `/app/settings/security` shows two-factor authentication
+and passkeys only while the API supports them. `/auth/setup` asks for a password all the same (`POST /system-setup/init`
+wants one); the first admin signs in through a provider whose account carries the same address, which Better Auth links
+only when the provider reports the address as verified: GitHub does, Microsoft Entra ID with the optional ID token claim
+`verified_primary_email`. Never use `trustedProviders` for that (see "Sign-in through providers alone" in
+`docs/1.guide/3.configuration.md`).
+
 ## Deploy
 
 ```bash

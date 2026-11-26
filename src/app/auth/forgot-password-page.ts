@@ -1,7 +1,8 @@
-import { afterNextRender, Component, type ElementRef, inject, Injector, signal, viewChild } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { afterNextRender, Component, effect, type ElementRef, inject, Injector, PLATFORM_ID, signal, viewChild } from '@angular/core';
 import { form, FormField, FormRoot, required, validateStandardSchema } from '@angular/forms/signals';
-import { RouterLink } from '@angular/router';
-import { LT_RUNTIME_CONFIG, LtErrorTranslationService } from '@lenne.tech/ng-base';
+import { Router, RouterLink } from '@angular/router';
+import { LT_RUNTIME_CONFIG, LtErrorTranslationService, LtToastService } from '@lenne.tech/ng-base';
 import { LtAuthService } from '@lenne.tech/ng-base/auth';
 import { HlmButton, HlmInput, LtFormField, LtNotice, LtPageCard, LtPageCardFooter } from '@lenne.tech/ng-base/ui';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -21,6 +22,11 @@ import { injectResendCooldown, resendCooldownSeconds } from './resend-cooldown';
  * - Resend with the cooldown of `GET /iam/features`; "use another address" keeps the address for a quick edit.
  * - Errors stay on the page as an alert (a toast vanishes before it is read); focus moves to the success heading when
  *   the form is replaced, so keyboard and screen-reader users keep their place.
+ *
+ * An API that signs in through providers alone (`/iam/features` reports `emailAndPassword: false`, nest-server 12.11.0+)
+ * has no password to reset: `POST /iam/request-password-reset` refuses, and the form would fail for everybody. The login
+ * page hides "Passwort vergessen?" there; a bookmark or an old link still lands here, so the page sends the visitor to
+ * the login, in the browser only, as `/auth/register` does.
  */
 @Component({
   imports: [FormField, FormRoot, HlmButton, HlmInput, LtFormField, LtNotice, LtPageCard, LtPageCardFooter, NgIcon, RouterLink],
@@ -32,7 +38,10 @@ export class ForgotPasswordPage {
   private readonly auth = inject(LtAuthService);
   private readonly errors = inject(LtErrorTranslationService);
   private readonly injector = inject(Injector);
+  private readonly router = inject(Router);
   private readonly runtimeConfig = inject(LT_RUNTIME_CONFIG);
+  private readonly toast = inject(LtToastService);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly successHeading = viewChild<ElementRef<HTMLElement>>('successHeading');
 
   protected readonly cooldown = injectResendCooldown();
@@ -55,6 +64,23 @@ export class ForgotPasswordPage {
 
   constructor() {
     void this.auth.fetchFeatures();
+    // Never on the server: a server-side redirect is a bare 302, and the toast explaining it would never arrive.
+    // Once: the page starts with the server's answer, and the browser's own (a new object) can arrive while the lazy
+    // login route still loads; a second run would show the toast twice and start a second navigation.
+    let leaving = false;
+    effect(() => {
+      if (!this.isBrowser || leaving || this.auth.features()['emailAndPassword'] !== false) {
+        return;
+      }
+      leaving = true;
+      this.toast.show({
+        color: 'warning',
+        description: 'Diese Anwendung nutzt keine Anmeldung mit Passwort. Bitte melde dich über die Anmeldeseite an.',
+        title: 'Passwort zurücksetzen nicht verfügbar',
+      });
+      // Replacing, not pushing: the page has nothing to show here, so "Zurück" must not land on it again.
+      void this.router.navigateByUrl('/auth/login', { replaceUrl: true });
+    });
   }
 
   private async requestResetLink(email: string): Promise<boolean> {

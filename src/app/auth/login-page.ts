@@ -26,6 +26,9 @@ import { verifyEmailState } from './verify-email-memory';
 /**
  * `/auth/login`: e-mail and password, a social provider, passkey, links to the password reset and the sign-up.
  *
+ * - The page offers the sign-in methods `/iam/features` reports (nuxt-base-starter 4.0.6): no form, no "Passwort
+ *   vergessen?" and no "Registrieren" with `emailAndPassword: false`, no passkey button with `passkey: false`, and the
+ *   hint "Anmeldung nicht möglich" when no method is left.
  * - `?redirect=` survives the whole flow (2FA, e-mail verification and the provider's round trip included) and is
  *   validated by `safeRedirectTarget`, so a deep link shared in a chat lands where it pointed, never off-site.
  * - `LTNS_0023` (e-mail not verified) leads to `/auth/verify-email`; the address travels in the history entry, never
@@ -65,7 +68,21 @@ export class LoginPage {
   protected readonly passkeyLoading = signal(false);
   /** The provider whose sign-in is starting; every provider button waits meanwhile. */
   protected readonly socialLoading = signal<null | string>(null);
-  protected readonly signUpEnabled = computed(() => this.auth.features()['signUpEnabled'] !== false);
+
+  // ── the sign-in methods `/iam/features` reports ──────────────────────────────────────────────────────────────────
+  // Only an explicit `false` takes a method away: an API before nest-server 12.11.0 does not report `emailAndPassword`,
+  // and before the features are known the page renders as it always did. The server fetches them before it renders and
+  // the browser starts with its answer, so the server HTML already shows the right methods and nothing flickers.
+  /**
+   * Sign-in with e-mail and password: off only for an API that signs in through providers alone (`emailAndPassword:
+   * false`, nest-server 12.11.0+). "Passwort vergessen?" and "Registrieren" go with it: both lead to pages that only work
+   * with a password.
+   */
+  protected readonly passwordSignIn = computed(() => this.auth.features()['emailAndPassword'] !== false);
+  /** The passkey button, unless the API reports passkeys off (nest-server 12.11.0+ does for provider-only sign-in). */
+  protected readonly passkeySignIn = computed(() => this.auth.features()['passkey'] !== false);
+  /** "Registrieren": with the password form, while sign-up is open (CLAUDE.md, auth rule 12). */
+  protected readonly signUpEnabled = computed(() => this.passwordSignIn() && this.auth.features()['signUpEnabled'] !== false);
 
   private readonly model = signal<LoginModel>({ email: '', password: '' });
   protected readonly loginForm = form(
@@ -93,6 +110,10 @@ export class LoginPage {
   private readonly socialProviders = computed(() => socialProvidersOf(this.auth.features()));
   /** One button per listed provider. */
   protected readonly socialButtons = computed(() => this.socialProviders().map((id) => ({ id, ...socialProviderDisplay(id) })));
+  /** "oder" between the form and the buttons, only when both are there. */
+  protected readonly showSeparator = computed(() => this.passwordSignIn() && (this.passkeySignIn() || this.socialButtons().length > 0));
+  /** Nothing left to sign in with: the page says so instead of showing an empty card. */
+  protected readonly noSignInMethod = computed(() => !this.passwordSignIn() && !this.passkeySignIn() && this.socialButtons().length === 0);
   /** `NG_PUBLIC_AUTH_SILENT_PROVIDER`, known on the server too. */
   private readonly configuredSilent = configuredSilentProvider(this.runtimeConfig['authSilentProvider']);
   /** The provider for the silent attempt: the configured one, while the API lists it. */
@@ -106,9 +127,14 @@ export class LoginPage {
   private readonly arrivedWithError = hasSignInError(this.arrivedQuery);
   /**
    * Why the provider or Better Auth sent the browser back here (`?error=` on `errorCallbackURL`). Only the code is
-   * mapped to a fixed text, which stays until the visitor starts a new sign-in.
+   * kept, and it stays until the visitor starts a new sign-in.
    */
-  protected readonly socialError = signal(socialSignInError(this.arrivedQuery['error']));
+  private readonly socialErrorCode = signal<unknown>(this.arrivedQuery['error']);
+  /**
+   * The fixed text for that code, worded for the sign-in methods the API offers: `account_not_linked` differs without a
+   * password. Computed, so it follows the browser's own `/iam/features` answer.
+   */
+  protected readonly socialError = computed(() => socialSignInError(this.socialErrorCode(), { passwordSignIn: this.passwordSignIn() }));
 
   /**
    * Where the silent attempt stands: `waiting` until the page knows whether it runs, `running` while it does, `off`
@@ -145,7 +171,7 @@ export class LoginPage {
         clearTimeout(this.silentWaitTimer);
       });
 
-      // The code is in `socialError` now, so it leaves the URL too: a reload must not bring the message back.
+      // The code is in `socialErrorCode` now, so it leaves the URL too: a reload must not bring the message back.
       // `redirect`, every other parameter and the fragment stay.
       if (this.arrivedWithError) {
         void this.router.navigate([], { preserveFragment: true, queryParams: withoutSignInError(this.arrivedQuery), relativeTo: this.route, replaceUrl: true });
@@ -158,7 +184,7 @@ export class LoginPage {
   }
 
   private async signIn(credentials: LoginModel): Promise<undefined> {
-    this.socialError.set(null);
+    this.socialErrorCode.set(null);
     this.loading.set(true);
     try {
       const result = await this.auth.signIn.email({ email: credentials.email, password: credentials.password });
@@ -198,7 +224,7 @@ export class LoginPage {
   }
 
   protected async signInWithPasskey(): Promise<void> {
-    this.socialError.set(null);
+    this.socialErrorCode.set(null);
     this.passkeyLoading.set(true);
     try {
       const result = await this.auth.authenticateWithPasskey();
@@ -232,7 +258,7 @@ export class LoginPage {
    * the browser leaves for the provider, so the buttons keep waiting.
    */
   protected async signInWithProvider(provider: string): Promise<void> {
-    this.socialError.set(null);
+    this.socialErrorCode.set(null);
     this.socialLoading.set(provider);
     try {
       const result = await this.auth.signIn.social(this.socialSignInParams(provider, 'select_account'));

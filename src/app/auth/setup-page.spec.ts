@@ -28,6 +28,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { LtErrorTranslationService, LtToastService, type LtToastOptions } from '@lenne.tech/ng-base';
 import { LtSystemSetupService, type LtSystemSetupInput } from '@lenne.tech/ng-base/auth';
+import { LtAuthStore } from '@lenne.tech/ng-base/auth/provide';
 
 import { SetupPage } from './setup-page';
 
@@ -81,7 +82,11 @@ async function settle(fixture: ComponentFixture<unknown>): Promise<void> {
   }
 }
 
-async function renderPage(initial: Status, initSetup: (input: LtSystemSetupInput, status: WritableSignal<Status>) => Promise<void> = async () => {}) {
+async function renderPage(
+  initial: Status,
+  initSetup: (input: LtSystemSetupInput, status: WritableSignal<Status>) => Promise<void> = async () => {},
+  features: Record<string, unknown> = {},
+) {
   const status = signal<Status>({ ...initial });
   const toasts: LtToastOptions[] = [];
   const init = vi.fn(async (input: LtSystemSetupInput) => initSetup(input, status));
@@ -89,6 +94,7 @@ async function renderPage(initial: Status, initSetup: (input: LtSystemSetupInput
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
+      { provide: LtAuthStore, useValue: { features: signal(features), fetchFeatures: vi.fn(async () => features) } },
       {
         provide: LtSystemSetupService,
         useValue: {
@@ -151,6 +157,28 @@ describe('setup page', () => {
 
     expect(page.fieldIds()).toEqual(['setup-name', 'setup-email', 'setup-password', 'setup-confirm-password']);
     expect(page.text()).not.toContain('NSC__SYSTEM_SETUP__INITIAL_ADMIN__EMAIL');
+  });
+
+  it('says how the admin signs in when the API signs in through providers alone', async () => {
+    // nest-server 12.11.0+ with `betterAuth.emailAndPassword.enabled: false`: the init still wants a password, the admin
+    // signs in through a provider whose account carries the same address.
+    const page = await renderPage(OPEN, undefined, { emailAndPassword: false, socialProviders: ['github'] });
+
+    expect(page.form()).not.toBeNull();
+    expect(page.text()).toContain('Anmeldung nur über einen Anbieter');
+    expect(page.text()).toContain('Das Passwort verlangt die Einrichtung, zum Anmelden dient es nicht.');
+    expect(page.text()).toContain('verified_primary_email');
+    // Never the provider trust list: it links addresses the provider has not verified (nOAuth).
+    expect(page.text()).not.toContain('trustedProviders');
+  });
+
+  it('shows no provider hint while the API keeps e-mail and password, or does not say', async () => {
+    for (const features of [{ emailAndPassword: true }, {}]) {
+      TestBed.resetTestingModule();
+      const page = await renderPage(OPEN, undefined, features);
+      expect(page.form(), JSON.stringify(features)).not.toBeNull();
+      expect(page.text(), JSON.stringify(features)).not.toContain('Anmeldung nur über einen Anbieter');
+    }
   });
 
   it('shows how to set the system up through the configuration while the HTTP init is closed, and links to the login', async () => {

@@ -23,6 +23,10 @@ import { verifyEmailState } from './verify-email-memory';
  * Registration is disabled in the API, never here: `betterAuth.emailAndPassword.disableSignUp: true` makes
  * `/iam/features` report `signUpEnabled: false`. Deleting this page instead leaves `POST /iam/sign-up/email` open to
  * anybody with a plain request (README, "No self sign-up?").
+ *
+ * The same goes for an API that signs in through providers alone (`emailAndPassword: false`, nest-server 12.11.0+): this
+ * page is an e-mail and password form, so it has nothing to offer there. Where sign-up is open, the account comes with
+ * the first sign-in through a provider on the login page.
  */
 @Component({
   imports: [FormField, FormRoot, HlmButton, HlmCheckbox, HlmInput, LtFormField, LtPageCard, LtPageCardFooter, LtPasswordInput, NgIcon, RouterLink],
@@ -60,10 +64,27 @@ export class RegisterPage {
   constructor() {
     void this.auth.fetchFeatures();
     // Never on the server: a server-side redirect is a bare 302, and the toast explaining it would never arrive.
+    // Once: the page starts with the server's answer, and the browser's own (a new object) can arrive while the lazy
+    // login route still loads; a second run would show the toast twice and start a second navigation.
+    let leaving = false;
     effect(() => {
-      if (this.isBrowser && this.auth.features()['signUpEnabled'] === false) {
-        this.toast.show({ color: 'warning', description: 'Die Registrierung ist derzeit deaktiviert.', title: 'Registrierung nicht verfügbar' });
-        void this.router.navigateByUrl('/auth/login');
+      if (!this.isBrowser || leaving) {
+        return;
+      }
+      const features = this.auth.features();
+      const signUpClosed = features['signUpEnabled'] === false;
+      if (signUpClosed || features['emailAndPassword'] === false) {
+        leaving = true;
+        this.toast.show({
+          color: 'warning',
+          description: signUpClosed
+            ? 'Die Registrierung ist derzeit deaktiviert.'
+            : 'Eine Registrierung mit E-Mail und Passwort ist hier nicht möglich. Bitte melde dich über die Anmeldeseite an.',
+          title: 'Registrierung nicht verfügbar',
+        });
+        // Replacing, not pushing: "Zurück" would land on this page again, which would send the visitor away again with
+        // one more toast each round.
+        void this.router.navigateByUrl('/auth/login', { replaceUrl: true });
       }
     });
   }

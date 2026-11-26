@@ -230,6 +230,27 @@ Dialogs and other overlays: `provideLtUiOverlayDefaults()` sits in the `provider
     `betterAuth.emailAndPassword.disableSignUp: true` in the API's config (from nest-server 12.3.0 this covers social
     providers too). `GET /iam/features` then reports `signUpEnabled: false`: the login page hides its "Registrieren"
     link and `/auth/register` sends the visitor to the login.
+    The login page offers only the sign-in methods `/iam/features` reports, and only an explicit `false` takes one
+    away (an API before nest-server 12.11.0 does not report `emailAndPassword`). `emailAndPassword: false` (an API
+    that signs in through providers alone) means no form, no "Passwort vergessen?", no "Registrieren", and
+    `/auth/register` sends the visitor to the login, in the browser so the toast arrives; `passkey: false` means no
+    passkey button; with no method left the page shows "Anmeldung nicht möglich". 12.11.0 reports `passkey: false` and
+    `twoFactor: false` together with `emailAndPassword: false` unless the API keeps a factor on. The server fetches
+    the features before it renders, so the server HTML already shows the right methods.
+    The other pages follow the same answer, again only on an explicit `false`: `/auth/forgot-password`
+    (`emailAndPassword`) goes to the login with a toast, replacing the history entry, as `/auth/register` does;
+    `/app/settings/security` leaves out two-factor authentication (`twoFactor`) and passkeys (`passkey`, without
+    asking for the passkey list), with a hint when neither is left; `?error=account_not_linked` points at the provider
+    used before instead of "wie bisher"; `/auth/setup` keeps its form (`POST /system-setup/init` wants a password)
+    and says that the first admin signs in through a provider whose account carries the same address. Better Auth
+    links that account only when the provider reports the address as verified: GitHub does, Microsoft Entra ID with
+    the optional ID token claim `verified_primary_email`. Never recommend
+    `betterAuth.options.account.accountLinking.trustedProviders` for that: it skips the provider's check, and an Entra
+    tenant admin who sets a user's `mail` to the admin's address signs in as the admin ("nOAuth").
+    `setup-page.spec.ts` fails when the hint names it. `emailVerified: true` from a provider's `mapProfileToUser` opens
+    the same gap (Better Auth spreads it over the provider's check), so never suggest that either. The setup password
+    is a dormant credential that signs the admin in once e-mail and password are switched on: a long random value,
+    not kept.
 13. Sign-in through a social provider (`src/app/auth/social-*.ts`, port of nuxt-base-starter #58). The provider is
     configured in the API (`betterAuth.socialProviders.<id>`, redirect URI `<API URL>/iam/callback/<id>`, app origin in
     `trustedOrigins`); `GET /iam/features` lists it in `socialProviders` and the login page shows a button for it.

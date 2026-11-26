@@ -139,6 +139,41 @@ jobs:
           timeout 30 bash -c 'while curl -sf http://localhost:3000/meta > /dev/null; do sleep 1; done'
           echo "API stopped"
 
+      # An API that signs in through a provider alone (nest-server 12.11.0+): `/iam/features` reports
+      # `emailAndPassword: false` and `passkey: false`, and the login page has to show the provider button and nothing
+      # else, already in the server HTML. The provider needs only an id and a secret to be listed; the spec never starts
+      # the round trip, so throwaway values do. The HTTP init stays closed, so the still empty database is left alone and
+      # no page goes to the setup. `E2E_SIGN_IN_CASE` makes the spec fail instead of skipping when the API offers e-mail
+      # and password after all. Against the API of the suites below it checks that the form stays.
+      - name: Start API signing in through a provider alone
+        env:
+          NSC__SYSTEM_SETUP__HTTP_INIT: 'false'
+          NSC__BETTER_AUTH__EMAIL_AND_PASSWORD__ENABLED: 'false'
+          NSC__BETTER_AUTH__SOCIAL_PROVIDERS__GITHUB__CLIENT_ID: ci-e2e-throwaway-client-id
+          NSC__BETTER_AUTH__SOCIAL_PROVIDERS__GITHUB__CLIENT_SECRET: ci-e2e-throwaway-client-secret
+        run: |
+          setsid bash -c 'cd api && exec pnpm run start:e2e:dist' > "$GITHUB_WORKSPACE/api-e2e-providers.log" 2>&1 &
+          echo $! > /tmp/api-providers.pid
+          timeout 180 bash -c '
+            until curl -sf http://localhost:3000/meta > /dev/null; do
+              kill -0 "$(cat /tmp/api-providers.pid)" 2>/dev/null || {
+                echo "::error::API process died during boot"; tail -n 60 "$GITHUB_WORKSPACE/api-e2e-providers.log"; exit 1;
+              }
+              sleep 2
+            done'
+          echo "API is up, signing in through a provider alone"
+
+      - name: Login page with a provider as the only way in
+        env:
+          E2E_SIGN_IN_CASE: providers-only
+        run: pnpm exec playwright test tests/e2e/auth-sign-in-methods.spec.ts
+
+      - name: Stop the API signing in through a provider alone
+        run: |
+          kill -- "-$(cat /tmp/api-providers.pid)"
+          timeout 30 bash -c 'while curl -sf http://localhost:3000/meta > /dev/null; do sleep 1; done'
+          echo "API stopped"
+
       - name: Start API and wait for readiness
         run: |
           setsid bash -c 'cd api && exec pnpm run start:e2e:dist' > "$NEST_SERVER_LOG" 2>&1 &
@@ -170,6 +205,31 @@ jobs:
         env:
           E2E_EXPECT_AUTH_MODE: cookie
         run: pnpm run test:e2e
+
+      # A session the API ended, against an API without JWT (`NSC__BETTER_AUTH__JWT__ENABLED=false`, `/iam/features`
+      # reports `jwt: false`): a reload has to sign the visitor out, and the next guarded page asks for a sign-in
+      # (ng-base 22.1.4). The suite above runs the spec against an API with JWT on; `E2E_SESSION_CASE=no-jwt` makes it fail
+      # when this API reports JWT on after all. Same database and log as the suites (the spec reads the verification
+      # token from the log); the JWT restart below stops this API through the same pid file.
+      - name: Restart the API without JWT
+        run: |
+          kill -- "-$(cat /tmp/api.pid)"
+          timeout 30 bash -c 'while curl -sf http://localhost:3000/meta > /dev/null; do sleep 1; done'
+          NSC__BETTER_AUTH__JWT__ENABLED=false setsid bash -c 'cd api && exec pnpm run start:e2e:dist' > "$NEST_SERVER_LOG" 2>&1 &
+          echo $! > /tmp/api.pid
+          timeout 180 bash -c '
+            until curl -sf http://localhost:3000/meta > /dev/null; do
+              kill -0 "$(cat /tmp/api.pid)" 2>/dev/null || {
+                echo "::error::API process died during boot"; tail -n 60 "$NEST_SERVER_LOG"; exit 1;
+              }
+              sleep 2
+            done'
+
+      - name: A session the API ended (API without JWT)
+        env:
+          E2E_EXPECT_AUTH_MODE: cookie
+          E2E_SESSION_CASE: no-jwt
+        run: pnpm exec playwright test tests/e2e/auth-session-ended.spec.ts
 
       # The same suite against the API in JWT mode: `NSC__COOKIES=false` (top-level `cookies`, not `betterAuth.cookies`);
       # sign-in returns a JWT, the app sends it as bearer header and keeps no session cookie. Same database, so the admin

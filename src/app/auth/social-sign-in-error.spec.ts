@@ -40,6 +40,20 @@ describe('?error= on the way back', () => {
       description: 'Für diese E-Mail-Adresse gibt es bereits ein Konto mit einer anderen Anmeldeart. Bitte melde dich wie bisher an oder wende dich an die Administration.',
       title: 'Anmeldung nicht möglich',
     });
+    // An API that keeps the password, or one whose answer is not known: the same text.
+    expect(socialSignInError('account_not_linked', { passwordSignIn: true })).toEqual(socialSignInError('account_not_linked'));
+  });
+
+  it('sends a visitor to the provider used before when the API signs in through providers alone (account_not_linked)', () => {
+    // `emailAndPassword: false`: "wie bisher" would point at a password nobody can use there.
+    expect(socialSignInError('account_not_linked', { passwordSignIn: false })).toEqual({
+      description:
+        'Für diese E-Mail-Adresse gibt es bereits ein Konto, das nicht mit diesem Anbieter verbunden ist. Bitte melde dich über den Anbieter an, den du bisher genutzt hast, oder wende dich an die Administration.',
+      title: 'Anmeldung nicht möglich',
+    });
+    // Every other code keeps its text.
+    expect(socialSignInError('access_denied', { passwordSignIn: false })).toEqual(socialSignInError('access_denied'));
+    expect(socialSignInError('state_mismatch', { passwordSignIn: false })).toEqual(socialSignInError('state_mismatch'));
   });
 
   it('names an unknown code for support, and the code the callback page sends when no session arrived', () => {

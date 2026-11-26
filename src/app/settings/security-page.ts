@@ -1,4 +1,4 @@
-import { afterNextRender, Component, type ElementRef, inject, signal, viewChild } from '@angular/core';
+import { afterNextRender, Component, computed, type ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { form, FormField, FormRoot, required, validateStandardSchema } from '@angular/forms/signals';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
@@ -17,6 +17,12 @@ import { confirmPasswordSchema, type PasswordModel, totpCodeSchema, type TotpCod
 /**
  * `/app/settings/security`: two-factor authentication (enable with password → QR code → code → backup codes, disable,
  * show or regenerate backup codes), passkeys (list, add with a name, delete) and the account's data.
+ *
+ * Each factor only while the API supports it: `/iam/features` reports `twoFactor: false` and `passkey: false` when the
+ * plugin is off, as nest-server 12.11.0+ does for an API that signs in through providers alone (`emailAndPassword:
+ * false`). The endpoints behind them answer 404 there, so "2FA aktivieren" and "Passkey hinzufügen" would fail on every
+ * click. Only an explicit `false` hides a section: without the field (an older API) it stays. The features are fetched
+ * during SSR, so the server HTML already leaves the sections out.
  */
 @Component({
   imports: [DatePipe, FormField, FormRoot, HlmBadge, HlmButton, HlmCardImports, HlmInput, LtFormField, LtNotice, LtPasswordInput, NgIcon],
@@ -40,6 +46,13 @@ export class SecurityPage {
   /** The QR code of the TOTP URI as SVG (password managers read SVG more reliably than a raster image). */
   protected readonly qrCodeSvg = signal<SafeHtml | null>(null);
   private readonly backupCodes = signal<string[]>([]);
+
+  /** Two-factor authentication, unless the API reports it off. */
+  protected readonly twoFactorAvailable = computed(() => this.auth.features()['twoFactor'] !== false);
+  /** Passkeys, unless the API reports them off. */
+  protected readonly passkeyAvailable = computed(() => this.auth.features()['passkey'] !== false);
+  /** Sign-in through providers alone: the provider's account holds the second factor, not this one. */
+  protected readonly providersOnly = computed(() => this.auth.features()['emailAndPassword'] === false);
 
   protected readonly passkeys = signal<LtPasskey[]>([]);
   protected readonly passkeyLoading = signal(false);
@@ -78,8 +91,24 @@ export class SecurityPage {
   protected readonly fieldError = fieldError;
 
   constructor() {
+    void this.auth.fetchFeatures();
     // Browser only, like the Nuxt template's onMounted: the server render has no session cookie to send.
-    afterNextRender(() => void this.loadPasskeys());
+    afterNextRender(() => void this.loadPasskeysIfKept());
+  }
+
+  /**
+   * The passkey list once the features are known (the call joins the request still on its way): without passkeys on the
+   * API, `list-user-passkeys` answers 404 and would only log an error.
+   */
+  private async loadPasskeysIfKept(): Promise<void> {
+    try {
+      await this.auth.fetchFeatures();
+    } catch {
+      // The last known features decide; an unknown answer keeps the passkeys, as without the field.
+    }
+    if (this.passkeyAvailable()) {
+      await this.loadPasskeys();
+    }
   }
 
   private async enable2FA(password: string): Promise<undefined> {

@@ -30,6 +30,11 @@ import { MongoClient } from 'mongodb';
  * @see The nest-server side is `CoreBetterAuthController.getFeatures()`.
  */
 export interface Features {
+  /**
+   * Sign-in with e-mail and password is available. Reported from nest-server 12.11.0 on, `false` for an
+   * API that signs in through social providers alone; an older server leaves it out, which means on.
+   */
+  emailAndPassword: boolean;
   /** Email verification is required before login. */
   emailVerification: boolean;
   /** The auth module is active at all. */
@@ -65,6 +70,7 @@ export interface Features {
  * drift the way their interfaces did.
  */
 export const DEFAULT_FEATURES: Features = {
+  emailAndPassword: true,
   emailVerification: true,
   enabled: true,
   jwt: false,

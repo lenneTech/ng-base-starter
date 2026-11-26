@@ -205,6 +205,48 @@ NG_PUBLIC_AUTH_SILENT_PROVIDER=microsoft npx playwright test tests/e2e/auth-soci
 
 The same command without `NG_PUBLIC_AUTH_SILENT_PROVIDER` runs the other five.
 
+### Sign-in methods (`auth-sign-in-methods.spec.ts`)
+
+Checks that the login page offers exactly the sign-in methods `GET /iam/features` reports, in the
+server's HTML and after hydration, and that `/auth/register` and `/auth/forgot-password` send the
+visitor to the login when the API has no e-mail and password, replacing the history entry. Against an API as nest-server-starter ships it, it checks that the
+form, "Passwort vergessen?", "Registrieren" and the passkey button stay. The case it was written for,
+an API that signs in through a provider alone (nest-server 12.11.0+), needs an API started with
+
+```bash
+NSC__BETTER_AUTH__EMAIL_AND_PASSWORD__ENABLED=false \
+NSC__BETTER_AUTH__SOCIAL_PROVIDERS__GITHUB__CLIENT_ID=any-value \
+NSC__BETTER_AUTH__SOCIAL_PROVIDERS__GITHUB__CLIENT_SECRET=any-value \
+PLAYWRIGHT=true pnpm run start:e2e:dist
+```
+
+and the spec run with `E2E_SIGN_IN_CASE=providers-only`, which makes it fail instead of skipping when
+the API offers e-mail and password after all. The button only starts the round trip, which the spec
+never takes, so the provider values need not be real. The `e2e-auth` job runs it that way on the
+empty database, with `NSC__SYSTEM_SETUP__HTTP_INIT=false` so no page goes to the setup.
+
+The security page cannot run against such an API here: nobody signs in there without a real provider
+round trip. `src/app/settings/security-page.spec.ts` pins which sections it shows for each answer.
+
+### A session the API ended (`auth-session-ended.spec.ts`)
+
+Registers a user, ends the session on the API (`POST /iam/sign-out` with the browser's session cookie,
+from a request context of its own, so the browser keeps its cookies and the auth-state cookie), and
+reloads `/app`. Since ng-base 22.1.4 the app signs the visitor out then; the next guarded page goes to
+`/auth/login?redirect=%2Fapp%2Fsettings%2Fsecurity`, and the sign-in leads back to it. With ng-base
+22.1.3 the reload left the visitor signed in (measured 2026-11-26).
+
+Cookie mode only: with a stored JWT (`E2E_EXPECT_AUTH_MODE=jwt`) the user stays until a request
+fails, and the spec skips. It runs in the cookie suite against an API with JWT on, and once more
+against an API without JWT:
+
+```bash
+NSC__BETTER_AUTH__JWT__ENABLED=false PLAYWRIGHT=true pnpm run start:e2e:dist
+```
+
+with `E2E_SESSION_CASE=no-jwt`, which makes the spec fail when the API reports JWT on after all. The
+`e2e-auth` job does that after the cookie suite, with the same database and API log.
+
 ## Configuration scenarios
 
 The suite detects the live configuration via `GET /iam/features` and adapts — it skips steps
@@ -249,6 +291,15 @@ Until nest-server 12.7.0 the API answers CORS with a wildcard in this mode, whic
 the app's credentialed cross-origin requests: run the app same-origin through its `/api` proxy
 (`NG_PUBLIC_API_PROXY=true`). The `e2e-auth` job in `.github/workflows/test.yml` runs the whole suite
 twice, in scenario 1 and then in scenario 3 (proxy) against the same database.
+
+Steps 4 and 7 switch 2FA on and off. Since nest-server 12.11.0 a JWT is bound to its session, and
+both switches replace the session, so after each one the spec asks `GET /iam/get-session` with the
+bearer from the app's token cookie alone (`lt-jwt-token` by default, renamed by
+`NG_PUBLIC_COOKIE_PREFIX`), from Playwright's `request` fixture without the browser's cookies.
+The Better-Auth routes the API forwards set a session cookie in the JWT mode too, and a request
+through the browser context would be answered through it. The check needs ng-base 22.1.3 and
+nest-server 12.11.1: with ng-base 22.1.2 step 7 fails (measured 2026-11-25). In the cookie mode both
+steps ask with the session cookie.
 
 ### Scenario 4 — JWT mode, no verification or checks
 

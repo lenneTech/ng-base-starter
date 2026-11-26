@@ -142,6 +142,12 @@ async function openLogin(url: string, options: Options = {}) {
     },
     features,
     fetchFeatures,
+    /** Whether the e-mail and password form is there (fields and submit button). */
+    hasPasswordForm: () => !!root.querySelector('lt-page-card form input#login-password') && !!root.querySelector('lt-page-card button[type="submit"]'),
+    /** Whether the "oder" separator between the form and the buttons is there. */
+    hasSeparator: () => [...root.querySelectorAll('lt-page-card [ltPageCardFooter] span')].some((span) => span.textContent?.trim() === 'oder'),
+    /** The names of the links in the card ("Passwort vergessen?", "Registrieren"). */
+    linkNames: () => [...root.querySelectorAll('lt-page-card a')].map((link) => link.textContent?.trim()),
     router,
     settle,
     signInEmail,
@@ -271,6 +277,23 @@ describe('LoginPage: back with ?error=', () => {
     await page.click('Mit GitHub anmelden');
 
     expect(page.alert()).toBeNull();
+  });
+
+  it('words account_not_linked for providers alone when the API has no password, and follows the answer of the browser', async () => {
+    const providersOnly = { emailAndPassword: false, passkey: false, socialProviders: ['microsoft'] };
+    // The features the server transferred: the first paint already has the provider wording.
+    const page = await openLogin('/auth/login?error=account_not_linked', { features: providersOnly });
+
+    expect(page.alert()).toContain('Bitte melde dich über den Anbieter an, den du bisher genutzt hast');
+    expect(page.alert()).not.toContain('wie bisher an');
+
+    // The browser's own answer keeps the wording; an API with a password brings the original text back.
+    page.features.set({ ...providersOnly });
+    await page.settle();
+    expect(page.alert()).toContain('den du bisher genutzt hast');
+    page.features.set({ emailAndPassword: true, socialProviders: ['microsoft'] });
+    await page.settle();
+    expect(page.alert()).toContain('Bitte melde dich wie bisher an');
   });
 
   it('drops the message when a password sign-in starts', async () => {
@@ -554,5 +577,68 @@ describe('LoginPage: back from the provider through the back/forward cache', () 
     await page.settle();
 
     expect(page.cardHidden()).toBe(true);
+  });
+});
+
+describe('LoginPage: the sign-in methods /iam/features reports', () => {
+  const NO_METHOD = 'Anmeldung nicht möglich';
+
+  it('keeps form, "Passwort vergessen?", "Registrieren" and the passkey button for an API that does not report the fields', async () => {
+    const page = await openLogin('/auth/login', { features: { signUpEnabled: true } });
+
+    expect(page.hasPasswordForm()).toBe(true);
+    expect(page.linkNames()).toEqual(['Passwort vergessen?', 'Registrieren']);
+    expect(page.hasSeparator()).toBe(true);
+    expect(page.buttonNames()).toEqual(['Mit Passkey anmelden']);
+    expect(page.text()).not.toContain(NO_METHOD);
+  });
+
+  it('shows only the provider buttons for an API that signs in through providers alone', async () => {
+    const page = await openLogin('/auth/login', { features: { emailAndPassword: false, passkey: false, signUpEnabled: true, socialProviders: ['github'] } });
+
+    expect(page.hasPasswordForm()).toBe(false);
+    expect(page.linkNames()).toEqual([]);
+    expect(page.hasSeparator()).toBe(false);
+    expect(page.buttonNames()).toEqual(['Mit GitHub anmelden']);
+    expect(page.text()).not.toContain(NO_METHOD);
+  });
+
+  it('keeps the passkey button without e-mail and password while the API keeps passkeys on', async () => {
+    const page = await openLogin('/auth/login', { features: { emailAndPassword: false, socialProviders: ['github'] } });
+
+    expect(page.hasPasswordForm()).toBe(false);
+    expect(page.hasSeparator()).toBe(false);
+    expect(page.buttonNames()).toEqual(['Mit GitHub anmelden', 'Mit Passkey anmelden']);
+  });
+
+  it('drops the passkey button when the API reports passkeys off, and the separator with nothing below it', async () => {
+    const page = await openLogin('/auth/login', { features: { passkey: false } });
+
+    expect(page.hasPasswordForm()).toBe(true);
+    expect(page.buttonNames()).toEqual([]);
+    expect(page.hasSeparator()).toBe(false);
+  });
+
+  it('hides "Registrieren" when sign-up is closed and keeps "Passwort vergessen?"', async () => {
+    const page = await openLogin('/auth/login', { features: { signUpEnabled: false } });
+
+    expect(page.linkNames()).toEqual(['Passwort vergessen?']);
+  });
+
+  it('says so instead of showing an empty card when no method is left', async () => {
+    const page = await openLogin('/auth/login', { features: { emailAndPassword: false, passkey: false, socialProviders: [] } });
+
+    expect(page.hasPasswordForm()).toBe(false);
+    expect(page.buttonNames()).toEqual([]);
+    expect(page.linkNames()).toEqual([]);
+    expect(page.alert()).toBe(`${NO_METHOD} Für diese Anwendung ist derzeit keine Anmeldemethode eingerichtet. Bitte wende dich an die Betreiber der Anwendung.`);
+  });
+
+  it('follows the answer the browser gets once it arrives', async () => {
+    const page = await openLogin('/auth/login', { fetchFeatures: async () => ({ emailAndPassword: false, passkey: false, socialProviders: ['github'] }) });
+
+    expect(page.fetchFeatures).toHaveBeenCalled();
+    expect(page.hasPasswordForm()).toBe(false);
+    expect(page.buttonNames()).toEqual(['Mit GitHub anmelden']);
   });
 });

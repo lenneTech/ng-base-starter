@@ -6,6 +6,18 @@
         <h1 class="text-2xl font-bold">System einrichten</h1>
         <p class="text-sm text-muted-foreground">Erstelle den ersten Administrator-Account, um das System zu starten.</p>
       </div>
+      @if (providersOnly()) {
+        <lt-notice variant="info" title="Anmeldung nur über einen Anbieter" class="mb-6">
+          <!-- wrap-anywhere: the claim name has no break point and is wide on a phone (see the closed view below). -->
+          <div class="space-y-2 text-sm">
+            <p>Gib die E-Mail-Adresse an, die das Konto des Administrators beim Anbieter hat. Das Passwort verlangt die Einrichtung, zum Anmelden dient es nicht.</p>
+            <p class="wrap-anywhere">
+              Die API verbindet beide Konten bei der ersten Anmeldung, wenn der Anbieter die Adresse als bestätigt meldet. GitHub tut das, Microsoft Entra ID mit dem optionalen
+              Claim <code>verified_primary_email</code> in der App-Registrierung.
+            </p>
+          </div>
+        </lt-notice>
+      }
       <form [formRoot]="setupForm" class="flex flex-col gap-4">
         <lt-form-field for="setup-name" label="Name" [error]="fieldError(setupForm.name)" [required]="true">
           <input hlmInput id="setup-name" type="text" autocomplete="name" placeholder="Name eingeben" [formField]="setupForm.name" aria-describedby="setup-name-error" />
