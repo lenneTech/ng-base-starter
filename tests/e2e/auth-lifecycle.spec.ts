@@ -5,7 +5,7 @@
  */
 
 import { expect, test } from '@playwright/test';
-import type { BrowserContext, CDPSession, Page } from '@playwright/test';
+import type { APIRequestContext, BrowserContext, CDPSession, Page } from '@playwright/test';
 import { extractTOTPSecret, fillInput, generateTestUser, generateTOTP, gotoAndWaitForHydration, waitForHydration, waitForURLAndHydration } from '@lenne.tech/ng-base/testing';
 
 import {
@@ -45,6 +45,82 @@ async function expectAuthMode(page: Page): Promise<void> {
   expect(state, 'the auth-state cookie after sign-in').toBeDefined();
   const { authMode } = JSON.parse(decodeURIComponent(state?.value ?? '{}')) as { authMode?: string };
   expect(authMode, 'the auth mode the app adopted').toBe(expected);
+}
+
+/** A JWT: three base64url parts, the header starting with `eyJ`. */
+const JWT_SHAPE = /^eyJ[^.]*\.[^.]*\.[^.]*$/;
+
+/** A token cookie's value as ng-base reads it: URL-encoded, the JWT as is or as a JSON string; '' when unreadable. */
+function jwtOf(value: string): string {
+  try {
+    const raw = decodeURIComponent(value);
+    const parsed: unknown = raw.startsWith('"') ? JSON.parse(raw) : raw;
+    return typeof parsed === 'string' ? parsed : '';
+  } catch {
+    return '';
+  }
+}
+
+/** The `authMode` the app wrote into its `<prefix>-auth-state` cookie, or undefined without a readable one. */
+function appAuthMode(cookies: { name: string; value: string }[]): string | undefined {
+  try {
+    const state = cookies.find((cookie) => cookie.name.endsWith('-auth-state'));
+    return state ? (JSON.parse(decodeURIComponent(state.value)) as { authMode?: string }).authMode : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The session of the signed-in user, asked the way the app's own API requests ask.
+ *
+ * In the JWT mode only with the bearer the app holds in its token cookie (`lt-jwt-token` by default), from Playwright's
+ * `request` fixture: a request context of its own, without the browser's cookies. The Better-Auth routes the API
+ * forwards (`two-factor/verify-totp`, `two-factor/disable`, …) set a session cookie in the JWT mode too, and a request
+ * through the browser context (`page.request`, `context.request`) would be answered through that cookie, so a dead JWT
+ * went unnoticed. Since nest-server 12.11.0 a JWT is bound to its session, and switching 2FA on or off replaces the
+ * session: this is the check that the app holds the JWT of the new one (ng-base 22.1.3 with nest-server 12.11.1;
+ * against nest-server 12.11.0 the step after switching 2FA off fails here). The cookie mode asks with the browser's
+ * session cookie, which is the transport there. Same check as nuxt-base-starter's `expectSessionAsTheAppAsks()`.
+ *
+ * The mode is `E2E_EXPECT_AUTH_MODE` when set (CI), else the `authMode` the app wrote into its `<prefix>-auth-state`
+ * cookie, so a local run against a JWT-mode API without the variable still asks with the bearer alone.
+ */
+async function expectSessionAsTheAppAsks(page: Page, request: APIRequestContext, email: string): Promise<void> {
+  const cookies = await page.context().cookies();
+  const jwtMode = (process.env['E2E_EXPECT_AUTH_MODE'] ?? appAuthMode(cookies)) === 'jwt';
+  console.info(`  Session check: ${jwtMode ? 'bearer only' : 'session cookie'}`);
+  let response;
+  if (jwtMode) {
+    // The cookie name as ng-base's `resolveLtAuthCookieNames()` derives it: a configured `lt.auth.cookieNames.token`,
+    // else `<NG_PUBLIC_COOKIE_PREFIX>-jwt-token`, else `lt-jwt-token`. Read from the runtime config the server wrote
+    // into the page (`provideLtAuth()` in `app.config.ts` sets no cookie names).
+    const tokenCookieName = await page.evaluate(() => {
+      type PublicConfig = { cookiePrefix?: unknown; lt?: { auth?: { cookieNames?: { token?: string } } } };
+      let config: PublicConfig | null = null;
+      try {
+        config = JSON.parse(document.getElementById('ng-runtime-config')?.textContent ?? 'null') as PublicConfig | null;
+      } catch {
+        config = null;
+      }
+      const configured = config?.lt?.auth?.cookieNames?.token;
+      if (configured && configured !== 'lt-jwt-token') return configured;
+      const prefix = typeof config?.cookiePrefix === 'string' ? config.cookiePrefix.trim().replace(/[^A-Za-z0-9._-]/g, '') : '';
+      return prefix ? `${prefix}-jwt-token` : 'lt-jwt-token';
+    });
+    // Read as the app reads it (`LtAuthStateService.getJwtToken()`): every cookie of that name, the first value shaped
+    // like a JWT; URL-encoded, the JWT as is, or as a JSON string from older releases.
+    const jwt = cookies
+      .filter((cookie) => cookie.name === tokenCookieName)
+      .map((cookie) => jwtOf(cookie.value))
+      .find((token) => JWT_SHAPE.test(token));
+    expect(jwt, `the app holds no JWT in ${tokenCookieName}`).toMatch(JWT_SHAPE);
+    response = await request.get(`${API_BASE}/iam/get-session`, { headers: { Authorization: `Bearer ${jwt}` } });
+  } else {
+    response = await page.context().request.get(`${API_BASE}/iam/get-session`);
+  }
+  const body = (await response.json().catch(() => null)) as { user?: { email?: string } } | null;
+  expect(body?.user?.email, `GET /iam/get-session (${jwtMode ? 'bearer only' : 'session cookie'}) answered ${response.status()} without the signed-in user`).toBe(email);
 }
 
 async function loginWith2FA(page: Page, email: string, password: string, totpSecret: string): Promise<void> {
@@ -332,7 +408,7 @@ test.describe.serial('Comprehensive Better-Auth E2E Flow', () => {
   // Step 4: 2FA Activation
   // =========================================================================
 
-  test('Step 4: Activate 2FA', async ({ page }) => {
+  test('Step 4: Activate 2FA', async ({ page, request }) => {
     test.skip(!apiAvailable, 'Servers not running');
 
     // Login with email/password
@@ -389,6 +465,9 @@ test.describe.serial('Comprehensive Better-Auth E2E Flow', () => {
     // Verify 2FA is now active
     await expect(page.getByText('2FA ist aktiviert')).toBeVisible({ timeout: 5000 });
     console.info('  2FA activated, TOTP secret stored');
+
+    // Switching 2FA on replaced the session; the app must still be signed in the way it asks.
+    await expectSessionAsTheAppAsks(page, request, testUser.email);
 
     // Logout
     await logout(page);
@@ -479,7 +558,7 @@ test.describe.serial('Comprehensive Better-Auth E2E Flow', () => {
   // Step 7: Deactivate 2FA
   // =========================================================================
 
-  test('Step 7: Deactivate 2FA', async ({ page }) => {
+  test('Step 7: Deactivate 2FA', async ({ page, request }) => {
     test.skip(!apiAvailable, 'Servers not running');
     test.skip(!totpSecret, 'TOTP secret not available (2FA required for login)');
 
@@ -508,6 +587,9 @@ test.describe.serial('Comprehensive Better-Auth E2E Flow', () => {
     // Verify 2FA is now deactivated
     await expect(page.getByText('2FA ist deaktiviert')).toBeVisible({ timeout: 10000 });
     console.info('  2FA deactivated');
+
+    // Switching 2FA off replaced the session as well (nest-server 12.11.1 sends its JWT along).
+    await expectSessionAsTheAppAsks(page, request, testUser.email);
 
     // Clear TOTP secret since 2FA is disabled
     totpSecret = null;
